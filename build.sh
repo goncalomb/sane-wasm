@@ -49,6 +49,11 @@ if [ -z "$ARG_debug" ] && [ -n "$SANE_WASM_DOCKER" ] && [ -n "$SANE_WASM_DEBUG" 
     exit 1
 fi
 
+D_O0G3=()
+if [ -n "$ARG_debug" ]; then
+    D_O0G3=("-O0" "-g3")
+fi
+
 # https://github.com/libjpeg-turbo/libjpeg-turbo/issues/250
 (
     cd deps/libjpeg-turbo
@@ -85,7 +90,7 @@ set -x
 $SANE_DIR/libtool --tag=CC --mode=link emcc \
     "$SANE_DIR/backend/.libs/libsane.la" "$SANE_DIR/sanei/.libs/libsanei.la" \
     -I$SANE_DIR/include glue.cpp -o libsane.html \
-    --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread
+    --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}"
 set +x
 
 # ./build.sh --debug && emrun --no_browser libsane.html
