@@ -1,0 +1,144 @@
+diff --git a/libusb/os/emscripten_webusb.cpp b/libusb/os/emscripten_webusb.cpp
+index 325a3a1f..fbd554eb 100644
+--- a/libusb/os/emscripten_webusb.cpp
++++ b/libusb/os/emscripten_webusb.cpp
+@@ -20,7 +20,9 @@
+  */
+ 
+ #include <emscripten.h>
++#include <emscripten/proxying.h>
+ #include <emscripten/val.h>
++#include <pthread.h>
+ 
+ #include "libusbi.h"
+ 
+@@ -227,9 +229,11 @@ int em_open(libusb_device_handle *handle) {
+ }
+ 
+ void em_close(libusb_device_handle *handle) {
+-  // LibUSB API doesn't allow us to handle an error here, so ignore the Promise
+-  // altogether.
+-  return get_web_usb_device(handle->dev).call<void>("close");
++  // LibUSB API doesn't allow us to handle an error here, but we still need to
++  // await for the promise to avoid issues with multiple synchronous calls like
++  // closing and immediately re-opening the device
++  auto web_usb_device = get_web_usb_device(handle->dev);
++  promise_result::await(web_usb_device.call<val>("close"));
+ }
+ 
+ int em_get_config_descriptor_impl(val &&web_usb_config, void *buf, size_t len) {
+@@ -520,7 +524,14 @@ void em_clear_transfer_priv(usbi_transfer *itransfer) {
+   WebUsbTransferPtr(itransfer).take();
+ }
+ 
+-int em_cancel_transfer(usbi_transfer *itransfer) { return LIBUSB_SUCCESS; }
++int em_cancel_transfer(usbi_transfer *itransfer) {
++  // WebUSB doesn't support canceling transfers, but we act as it succeeds and
++  // signal transfer completion
++  // XXX: do we need to disconnect the pending promise to avoid issues when it
++  //      eventually succeeds or fails?
++  em_signal_transfer_completion_impl(itransfer, val(NULL));
++  return LIBUSB_SUCCESS;
++}
+ 
+ int em_handle_transfer_completion(usbi_transfer *itransfer) {
+   auto transfer = USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
+@@ -596,6 +607,64 @@ int em_handle_transfer_completion(usbi_transfer *itransfer) {
+ 
+   return usbi_handle_transfer_completion(itransfer, status);
+ }
++
++// rudimentary support for multi-threading, this is very basic and the thread
++// handle should probably be stored in device_priv
++// XXX: improve this
++em_proxying_queue* proxy_queue = em_proxying_queue_create();
++pthread_t main_thread = pthread_self();
++
++template <typename TRet, typename... TArgs>
++struct fn_task {
++  std::function<void()> fn;
++  TRet res;
++  fn_task(TRet(*func)(TArgs...), TArgs... args) {
++    fn = [&](){
++      res = (func)(args...);
++    };
++  }
++};
++
++void fn_task_call(void *tsk) {
++  (*((std::function<void()> *) tsk))();
++}
++
++int em_clear_halt_safe(libusb_device_handle *handle, unsigned char endpoint) {
++  if (main_thread != pthread_self()) {
++    fn_task<int, libusb_device_handle *, unsigned char> tsk(em_clear_halt, handle, endpoint);
++    emscripten_proxy_sync(proxy_queue, main_thread, fn_task_call, &tsk.fn);
++    return tsk.res;
++  }
++  return em_clear_halt(handle, endpoint);
++}
++
++int em_submit_transfer_safe(usbi_transfer *itransfer) {
++  if (main_thread != pthread_self()) {
++    fn_task<int, usbi_transfer *> tsk(em_submit_transfer, itransfer);
++    emscripten_proxy_sync(proxy_queue, main_thread, fn_task_call, &tsk.fn);
++    return tsk.res;
++  }
++  return em_submit_transfer(itransfer);
++}
++
++int em_cancel_transfer_safe(usbi_transfer *itransfer) {
++  if (main_thread != pthread_self()) {
++    fn_task<int, usbi_transfer *> tsk(em_cancel_transfer, itransfer);
++    emscripten_proxy_sync(proxy_queue, main_thread, fn_task_call, &tsk.fn);
++    return tsk.res;
++  }
++  return em_cancel_transfer(itransfer);
++}
++
++int em_handle_transfer_completion_safe(usbi_transfer *itransfer) {
++  if (main_thread != pthread_self()) {
++    fn_task<int, usbi_transfer *> tsk(em_handle_transfer_completion, itransfer);
++    emscripten_proxy_sync(proxy_queue, main_thread, fn_task_call, &tsk.fn);
++    return tsk.res;
++  }
++  return em_handle_transfer_completion(itransfer);
++}
++
+ }  // namespace
+ 
+ extern "C" {
+@@ -612,13 +681,13 @@ const usbi_os_backend usbi_backend = {
+     .claim_interface = em_claim_interface,
+     .release_interface = em_release_interface,
+     .set_interface_altsetting = em_set_interface_altsetting,
+-    .clear_halt = em_clear_halt,
++    .clear_halt = em_clear_halt_safe,
+     .reset_device = em_reset_device,
+     .destroy_device = em_destroy_device,
+-    .submit_transfer = em_submit_transfer,
+-    .cancel_transfer = em_cancel_transfer,
++    .submit_transfer = em_submit_transfer_safe,
++    .cancel_transfer = em_cancel_transfer_safe,
+     .clear_transfer_priv = em_clear_transfer_priv,
+-    .handle_transfer_completion = em_handle_transfer_completion,
++    .handle_transfer_completion = em_handle_transfer_completion_safe,
+     .device_priv_size = sizeof(val),
+     .transfer_priv_size = sizeof(val),
+ };
+diff --git a/libusb/os/events_posix.c b/libusb/os/events_posix.c
+index 2ba01033..ba0c86f9 100644
+--- a/libusb/os/events_posix.c
++++ b/libusb/os/events_posix.c
+@@ -267,7 +267,10 @@ int usbi_wait_for_events(struct libusb_context *ctx,
+ 		if (num_ready != 0) break;
+ 		int timeout = until_time - emscripten_get_now();
+ 		if (timeout <= 0) break;
+-		int result = em_libusb_wait(timeout);
++		// int result = em_libusb_wait(timeout);
++		// poll is non-blocking, wait a short time and check again, don't wait for timeout
++		// XXX: is this right?
++		int result = em_libusb_wait(50);
+ 		if (result != 0) break;
+ 	}
+ #else

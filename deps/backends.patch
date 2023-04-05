@@ -1,0 +1,35 @@
+diff --git a/acinclude.m4 b/acinclude.m4
+index 71e22c8d4..5e7169e83 100644
+--- a/acinclude.m4
++++ b/acinclude.m4
+@@ -229,7 +229,7 @@ AC_DEFUN([SANE_CHECK_PTHREAD],
+        have_pthread=yes
+        save_LIBS="$LIBS"
+        LIBS="$LIBS $PTHREAD_LIBS"
+-       AC_CHECK_FUNCS([pthread_create pthread_kill pthread_join pthread_detach pthread_cancel pthread_testcancel],
++       AC_CHECK_FUNCS([pthread_create pthread_join pthread_detach pthread_cancel pthread_testcancel],
+ 	,[ have_pthread=no; use_pthread=no ])
+        LIBS="$save_LIBS"
+     ],[ have_pthread=no; use_pthread=no ])
+@@ -241,7 +241,7 @@ AC_DEFUN([SANE_CHECK_PTHREAD],
+   AC_COMPILE_IFELSE(
+     [AC_LANG_PROGRAM([[#include <pthread.h>]], [[pthread_t k; k * 1;]])],
+     [ac_pthread_t_is_integer=yes],
+-    [ac_pthread_t_is_integer=no]
++    [ac_pthread_t_is_integer=yes]
+   )
+   AC_MSG_RESULT($ac_pthread_t_is_integer)
+   if test "$ac_pthread_t_is_integer" = yes ; then
+diff --git a/backend/pixma/pixma_common.c b/backend/pixma/pixma_common.c
+index f626db13a..00c5e0688 100644
+--- a/backend/pixma/pixma_common.c
++++ b/backend/pixma/pixma_common.c
+@@ -314,7 +314,7 @@ pixma_sum_bytes (const void *data, unsigned len)
+ void
+ pixma_sleep (unsigned long usec)
+ {
+-  usleep (usec);
++  // usleep (usec);
+ }
+ 
+ void

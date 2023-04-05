@@ -54,6 +54,15 @@ if [ -n "$ARG_debug" ]; then
     D_O0G3=("-O0" "-g3")
 fi
 
+# apply dependency patches
+(
+    cd deps
+    find . -mindepth 1 -maxdepth 1 -type f -name "*.patch" -printf "%f\n" | while IFS= read -r PATCH; do
+        echo "applying '$PATCH'"
+        git -C "${PATCH%.patch}" apply "../$PATCH" || true # failing is expected while in debug/local mode
+    done
+)
+
 # https://github.com/libjpeg-turbo/libjpeg-turbo/issues/250
 (
     cd deps/libjpeg-turbo
