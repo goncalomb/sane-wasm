@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Test Page for SANE WebAssembly (sane-wasm)</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                max-width: 950px;
+                margin: 0 auto;
+            }
+            button {
+                padding: .5em 0.8em;
+            }
+            canvas {
+                border: 2px solid #555;
+                margin-bottom: 25px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Test Page for SANE WebAssembly (sane-wasm)</h1>
+            <p>This project (sane-wasm) is a WebAssembly port of the <a href="http://sane-project.org/">SANE API</a> for in-browser scanning (USB scanners).</p>
+        </header>
+        <main>
+            <h2>Device Pairing (WebUSB)</h2>
+            <p>
+                <button id="btn-request-device">navigator.usb.requestDevice()</button>
+                <button id="btn-request-device-all">(no filters)</button>
+            </p>
+            <ul id="list-paired-devices"></ul>
+            <h2>LibSANE (sane-wasm)</h2>
+            <div id="sane-controls">Loading LibSANE (sane-wasm)...</div>
+            <h2>Scan Result</h2>
+            <canvas></canvas>
+        </main>
+        {{{ SCRIPT }}}
+        <script>
+            (function() {
+                // util function to build the dom
+                const tree = (data, parent = document.createDocumentFragment()) => {
+                    (Array.isArray(data) ? data : [data]).filter(spec => spec).map(spec => {
+                        if (!Array.isArray(spec)) return document.createTextNode(spec.toString());
+                        const el = spec[0] ? document.createElement(spec[0]) : document.createDocumentFragment();
+                        Object.keys(spec[1] || {}).forEach(attr => el[attr] = spec[1][attr]);
+                        return tree(spec[2] || [], el);
+                    }).forEach(el => parent.appendChild(el));
+                    return parent;
+                };
+
+                // check support
+                if (!navigator || !navigator.usb) {
+                    const main = document.querySelector("main");
+                    main.innerHTML = "";
+                    main.append(tree([
+                        ["p", null, [
+                            ["strong", null, "Browser not supported!"],
+                            " Missing ",
+                            ["a", { href: "https://developer.mozilla.org/en-US/docs/Web/API/WebUSB_API" }, "WebUSB API"],
+                            ".",
+                        ]]
+                    ]));
+                    return;
+                }
+
+                /* Device Pairing */
+
+                function updatePairedDevices() {
+                    const listPairedDevices = document.querySelector("#list-paired-devices");
+                    listPairedDevices.innerHTML = "";
+                    navigator.usb.getDevices().then(devices => {
+                        listPairedDevices.append(tree(devices.map(device => (
+                            ["li", null, `${device.productName} (${device.manufacturerName}) [${device.serialNumber}]`]
+                        ))));
+                    });
+                }
+
+                function requestDevice(filters = false) {
+                    navigator.usb.requestDevice({
+                        filters: filters ? [
+                            { classCode: 0x07 }, // printer
+                        ] : []
+                    }).finally(() => updatePairedDevices());
+                }
+
+                navigator.usb.addEventListener("connect", e => updatePairedDevices());
+                navigator.usb.addEventListener("disconnect", e => updatePairedDevices());
+                updatePairedDevices();
+
+                document.querySelector("#btn-request-device").addEventListener("click", e => requestDevice(true));
+                document.querySelector("#btn-request-device-all").addEventListener("click", e => requestDevice());
+
+                /* SANE */
+
+
+                const strstatusCache = {};
+
+                function callSANE(name, ...args) {
+                    function handleResponse(res) {
+                        console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res);
+                        if (res && res.status !== undefined) {
+                            if (!strstatusCache[res.status]) {
+                                strstatusCache[res.status] = LibSANE.sane_strstatus(res.status);
+                            }
+                            console.log(`LibSANE.sane_strstatus(${res.status}) =`, strstatusCache[res.status]);
+                        }
+                        return res;
+                    }
+                    const res = LibSANE[name](...args);
+                    if (res instanceof Promise) {
+                        console.log(`LibSANE.${name}(${args.length ? "..." : ""}) ASYNC`);
+                        return res.then(handleResponse);
+                    }
+                    return Promise.resolve(res).then(handleResponse);
+                }
+
+                async function testScan() {
+                    const state = await callSANE("sane_get_state");
+                    if (!state.open) {
+                        return;
+                    }
+
+                    console.log("TEST SCAN START");
+
+                    await callSANE("sane_start");
+                    const { data: params } = await callSANE("sane_get_parameters");;
+
+                    const canvas = document.querySelector("canvas");
+                    canvas.width = params.pixels_per_line;
+                    canvas.height = params.lines;
+                    const ctx = canvas.getContext("2d");
+
+                    const reader = (callback) => new Promise((resolve, reject) => {
+                        try {
+                            const read = async () => {
+                                const { status, data: { data, length } } = await callSANE("sane_read");
+                                if (status == 5) { // EOF
+                                    resolve();
+                                    return;
+                                }
+                                if (status != 0) {
+                                    reject();
+                                    return;
+                                }
+                                if (length) {
+                                    callback(data);
+                                }
+                                setTimeout(read, length > 0 ? 10 : 200);
+                            }
+                            setTimeout(read, 200);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+
+                    let line = 0;
+                    let rem = new Uint8ClampedArray();
+                    reader(data => {
+                        const lc = Math.floor((rem.length + data.length) / (3 * params.pixels_per_line));
+
+                        const idata = new Uint8ClampedArray(rem.length + data.length);
+                        idata.set(rem, 0);
+                        idata.set(data, rem.length);
+
+                        if (lc) {
+                            const odata = new Uint8ClampedArray(lc * params.pixels_per_line * 4);
+                            var i = 0;
+                            for (var j = 0; j < odata.length; i += 3, j += 4) {
+                                odata.set(idata.subarray(i, i + 3), j);
+                                odata[j + 3] = 0xff;
+                            }
+                            rem = idata.subarray(i);
+                            ctx.putImageData(new ImageData(odata, params.pixels_per_line), 0, line);
+                            line += lc;
+                        } else {
+                            rem = idata;
+                        }
+                    }).finally(() => {
+                        callSANE("sane_cancel").finally(() => {
+                            console.log("TEST SCAN STOP");
+                        })
+                    });
+                }
+
+                function populateDevices({ data: devices }) {
+                    const listDevices = document.querySelector("#list-devices");
+                    listDevices.innerHTML = "";
+                    listDevices.append(tree(devices.map(device => (
+                        ["li", null, [
+                            ["button", { onclick: e => callSANE("sane_open", device.name) }, "LibSANE.sane_open(...)"], " ",
+                            `${device.model} (${device.vendor}) [${device.name}] [${device.type}]`
+                        ]]
+                    ))));
+                }
+
+                window.addEventListener("load", () => {
+                    window.LibSANE().then(mod => {
+                        // publish module to window
+                        window.LibSANE = mod;
+                        // initialize
+                        const saneControls = document.querySelector("#sane-controls");
+                        saneControls.innerHTML = "";
+                        saneControls.append(tree([
+                            ["h3", null, "Initialize"],
+                            ["p", null, [
+                                ["button", { onclick: e => callSANE("sane_get_state") }, "LibSANE.sane_get_state()"], " ",
+                                ["button", { onclick: e => callSANE("sane_init") }, "LibSANE.sane_init()"], " ",
+                                ["button", { onclick: e => callSANE("sane_exit") }, "LibSANE.sane_exit()"], " ",
+                                ["button", { onclick: e => callSANE("sane_strstatus", 999) }, "LibSANE.sane_strstatus(999)"], " ",
+                            ]],
+                            ["h3", null, "Devices"],
+                            ["p", null, [
+                                ["button", { onclick: e => callSANE("sane_get_devices").then(populateDevices) }, "LibSANE.sane_get_devices()"], " ",
+                                ["button", { onclick: e => callSANE("sane_close") }, "LibSANE.sane_close()"], " ",
+                            ]],
+                            ["ul", { id: "list-devices" }],
+                            ["h3", null, "Scan"],
+                            ["p", null, [
+                                ["button", { onclick: e => callSANE("sane_get_parameters") }, "LibSANE.sane_get_parameters()"], " ",
+                            ]],
+                            ["p", null, [
+                                ["button", { onclick: e => callSANE("sane_start") }, "LibSANE.sane_start()"], " ",
+                                ["button", { onclick: e => callSANE("sane_read") }, "LibSANE.sane_read()"], " ",
+                                ["button", { onclick: e => callSANE("sane_cancel") }, "LibSANE.sane_cancel()"], " ",
+                            ]],
+                            ["p", null, [
+                                ["button", { onclick: e => testScan() }, "TEST SCAN"], " ",
+                            ]],
+                        ]));
+                    });
+                });
+            })();
+        </script>
+    </body>
+</html>

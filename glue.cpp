@@ -1,3 +1,4 @@
+#include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include <sane/sane.h>
@@ -5,77 +6,102 @@
 
 using namespace emscripten;
 
-#define B_LEN 1024*1024
+#define BUFFER_LEN 2*1024*1024
 
 SANE_Int version = 0;
-SANE_Handle h;
-SANE_Byte b[B_LEN];
+SANE_Handle handle = NULL;
+SANE_Byte buffer[BUFFER_LEN];
 
-val build_response(SANE_Status error, val data) {
+val build_response(SANE_Status status, val data) {
     val obj = val::object();
-    obj.set("error", (int) error);
+    obj.set("status", (int) status);
     obj.set("data", data);
     return obj;
 }
 
-val build_error(SANE_Status error) {
-    return build_response(error, val::null());
+val build_error(SANE_Status status) {
+    return build_response(status, val::null());
 }
 
 #define RETURN_ON_ERROR(status) if (status != SANE_STATUS_GOOD) return build_error(status);
 
 namespace sane {
 
-    int sane_init() {
+    val sane_get_state() { // sync
+        val version_ = val::object();
+        version_.set("code", version);
+        version_.set("major", SANE_VERSION_MAJOR(version));
+        version_.set("minor", SANE_VERSION_MINOR(version));
+        version_.set("build", SANE_VERSION_BUILD(version));
+        val state = val::object();
+        state.set("initialized", !!version);
+        state.set("version", version_);
+        state.set("open", !!handle);
+        return state;
+    }
+
+    int sane_init() { // sync
         if (!version) {
             ::sane_init(&version, NULL);
         }
         return version;
     }
 
+    void sane_exit() {
+        emscripten_sleep(0); // force async
+
+        ::sane_exit();
+        version = 0;
+        handle = NULL;
+    }
+
     val sane_get_devices() {
-        sane_init();
+        emscripten_sleep(0); // force async
+
         const SANE_Device **devices;
         SANE_Status res = ::sane_get_devices(&devices, SANE_TRUE);
         RETURN_ON_ERROR(res);
+
         val data = val::array();
         for (int i = 0; devices[i]; i++) {
-            data.call<void, std::string>("push", std::string(devices[0]->name));
+            val device = val::object();
+            device.set("name", devices[i]->name);
+            device.set("vendor", devices[i]->vendor);
+            device.set("model", devices[i]->model);
+            device.set("type", devices[i]->type);
+            data.call<void>("push", device);
         }
         return build_response(res, data);
     }
 
-    val sane_start() {
-        SANE_Status res;
+    val sane_open(std::string devicename) {
+        emscripten_sleep(0); // force async
 
-        if (h) {
-            printf("already open\n");
-            return build_error(SANE_STATUS_UNSUPPORTED);
+        if (!version || handle) {
+            return build_error(SANE_STATUS_INVAL);
         }
 
-        sane_init();
-
-        const SANE_Device **devices;
-        res = ::sane_get_devices(&devices, SANE_TRUE);
+        SANE_Status res = ::sane_open(devicename.c_str(), &handle);
         RETURN_ON_ERROR(res);
+        return build_response(res, val::null());
+    }
 
-        if (!devices[0]) {
-            printf("no devices\n");
-            return build_error(SANE_STATUS_UNSUPPORTED);
+    void sane_close() {
+        emscripten_sleep(0); // force async
+
+        if (handle) {
+            ::sane_close(handle);
+            handle = NULL;
+        }
+    }
+
+    val sane_get_parameters() { // sync
+        if (!handle) {
+            return build_error(SANE_STATUS_INVAL);
         }
 
         SANE_Parameters params;
-
-        res = sane_open(devices[0]->name, &h);
-        printf("sane_open %d\n", res);
-        RETURN_ON_ERROR(res);
-
-        res = sane_get_parameters(h, &params);
-        printf("sane_get_parameters %d\n", res);
-        RETURN_ON_ERROR(res);
-
-        res = ::sane_start(h);
-        printf("sane_start %d\n", res);
+        SANE_Status res = ::sane_get_parameters(handle, &params);
         RETURN_ON_ERROR(res);
 
         val data = val::object();
@@ -88,26 +114,58 @@ namespace sane {
         return build_response(res, data);
     }
 
-    val sane_read() {
-        if (!h) {
+    val sane_start() { // sync
+        if (!handle) {
             return build_error(SANE_STATUS_INVAL);
         }
 
-        SANE_Int len;
-        SANE_Status res = ::sane_read(h, b, B_LEN, &len);
+        SANE_Status res = ::sane_start(handle);
         RETURN_ON_ERROR(res);
+        return build_response(res, val::null());
+    }
 
+    EM_JS(EM_VAL, sane_read_build_uint8_array, (int pointer, int length), {
+        return Emval.toHandle(HEAPU8.subarray(pointer, pointer + length));
+    });
+
+    val sane_read() { // sync
+        if (!handle) {
+            return build_error(SANE_STATUS_INVAL);
+        }
+
+        SANE_Int len = 0;
+        SANE_Status res = ::sane_read(handle, buffer, BUFFER_LEN, &len);
         val data = val::object();
-        data.set("pointer", (int) (SANE_Byte *) b);
         data.set("length", len);
+        data.set("data", sane_read_build_uint8_array((int) (SANE_Byte *) buffer, len));
         return build_response(res, data);
+    }
+
+    val sane_cancel() { // sync
+        if (!handle) {
+            return build_error(SANE_STATUS_INVAL);
+        }
+
+        ::sane_cancel(handle);
+        return build_response(SANE_STATUS_GOOD, val::null());
+    }
+
+    val sane_strstatus(int status) { // sync
+        return val::u8string(::sane_strstatus((SANE_Status) status));
     }
 
 }
 
 EMSCRIPTEN_BINDINGS(sane_bindings) {
+    function("sane_get_state", &sane::sane_get_state);
     function("sane_init", &sane::sane_init);
+    function("sane_exit", &sane::sane_exit);
     function("sane_get_devices", &sane::sane_get_devices);
+    function("sane_open", &sane::sane_open);
+    function("sane_close", &sane::sane_close);
+    function("sane_get_parameters", &sane::sane_get_parameters);
     function("sane_start", &sane::sane_start);
     function("sane_read", &sane::sane_read);
+    function("sane_cancel", &sane::sane_cancel);
+    function("sane_strstatus", &sane::sane_strstatus);
 }

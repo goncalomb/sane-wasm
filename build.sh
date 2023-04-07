@@ -33,8 +33,9 @@ if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
             -v "$(pwd)/deps/libjpeg-turbo:/src/deps/libjpeg-turbo" \
             -v "$(pwd)/deps/libusb:/src/deps/libusb" \
             -v "$(pwd)/.git/modules:/src/.git/modules:ro" \
-            -v "$(pwd)/build.sh:/src/build.sh" \
-            -v "$(pwd)/glue.cpp:/src/glue.cpp" \
+            -v "$(pwd)/build.sh:/src/build.sh:ro" \
+            -v "$(pwd)/glue.cpp:/src/glue.cpp:ro" \
+            -v "$(pwd)/shell.html:/src/shell.html:ro" \
             -u "$(id -u):$(id -g)" \
             sane-wasm:latest "$@"
     fi
@@ -99,7 +100,8 @@ set -x
 $SANE_DIR/libtool --tag=CC --mode=link emcc \
     "$SANE_DIR/backend/.libs/libsane.la" "$SANE_DIR/sanei/.libs/libsanei.la" \
     -I$SANE_DIR/include glue.cpp -o libsane.html \
-    --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}"
+    --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}" \
+    -sMODULARIZE -sEXPORT_NAME=LibSANE --shell-file shell.html
 set +x
 
 # ./build.sh --debug && emrun --no_browser libsane.html
