@@ -9,9 +9,6 @@
                 max-width: 950px;
                 margin: 0 auto;
             }
-            button {
-                padding: .5em 0.8em;
-            }
             canvas {
                 border: 2px solid #555;
                 margin-bottom: 25px;
@@ -93,7 +90,6 @@
 
                 /* SANE */
 
-
                 const strstatusCache = {};
 
                 function callSANE(name, ...args) {
@@ -115,6 +111,7 @@
                     return Promise.resolve(res).then(handleResponse);
                 }
 
+                // XXX: improve this
                 async function testScan() {
                     const state = await callSANE("sane_get_state");
                     if (!state.open) {
@@ -124,7 +121,7 @@
                     console.log("TEST SCAN START");
 
                     await callSANE("sane_start");
-                    const { data: params } = await callSANE("sane_get_parameters");;
+                    const { parameters: params } = await callSANE("sane_get_parameters");;
 
                     const canvas = document.querySelector("canvas");
                     canvas.width = params.pixels_per_line;
@@ -134,7 +131,7 @@
                     const reader = (callback) => new Promise((resolve, reject) => {
                         try {
                             const read = async () => {
-                                const { status, data: { data, length } } = await callSANE("sane_read");
+                                const { status, data } = await callSANE("sane_read");
                                 if (status == 5) { // EOF
                                     resolve();
                                     return;
@@ -143,11 +140,11 @@
                                     reject();
                                     return;
                                 }
-                                if (length) {
+                                if (data.length) {
                                     callback(data);
                                 }
-                                setTimeout(read, length > 0 ? 10 : 200);
-                            }
+                                setTimeout(read, data.length > 0 ? 10 : 200);
+                            } // XXX: uncaught exception
                             setTimeout(read, 200);
                         } catch (e) {
                             reject(e);
@@ -157,6 +154,7 @@
                     let line = 0;
                     let rem = new Uint8ClampedArray();
                     reader(data => {
+                        // TUDO: detect and support other frame types
                         const lc = Math.floor((rem.length + data.length) / (3 * params.pixels_per_line));
 
                         const idata = new Uint8ClampedArray(rem.length + data.length);
@@ -183,21 +181,119 @@
                     });
                 }
 
-                function populateDevices({ data: devices }) {
+                function populateDevices({ devices }) {
                     const listDevices = document.querySelector("#list-devices");
                     listDevices.innerHTML = "";
                     listDevices.append(tree(devices.map(device => (
                         ["li", null, [
-                            ["button", { onclick: e => callSANE("sane_open", device.name) }, "LibSANE.sane_open(...)"], " ",
+                            ["button", { onclick: e => callSANE("sane_open", device.name).then(populateOptions) }, "LibSANE.sane_open(...)"], " ",
                             `${device.model} (${device.vendor}) [${device.name}] [${device.type}]`
                         ]]
                     ))));
                 }
 
+                async function populateOptions() {
+                    const state = await callSANE("sane_get_state");
+                    if (!state.open) {
+                        return;
+                    }
+                    const auto = Symbol("auto");
+                    async function createOptionControl(n, opt) {
+                        if (opt.cap.INACTIVE) {
+                            return null;
+                        }
+                        async function setValue(value) {
+                            const { status, info } = value === auto ? await callSANE("sane_control_option_set_auto", n) : await callSANE("sane_control_option_set_value", n, value);
+                            if (status == LibSANE.SANE_STATUS.GOOD) {
+                                if (info.RELOAD_OPTIONS) {
+                                    populateOptions();
+                                } else /*if (info.INEXACT)*/ { // always reload
+                                    await createOptionControl(n, opt);
+                                }
+                            }
+                        }
+                        function inputElement(value) {
+                            function selectElement(constraint, number = false) {
+                                return ["select", { onchange: e => setValue(number ? Number(e.target.value) : e.target.value) },
+                                    constraint.map(v => (
+                                        ["option", { value: v, selected: v == value ? true : null }, v]
+                                    ))
+                                ];
+                            }
+                            switch (opt.type) {
+                                case LibSANE.SANE_TYPE.BOOL: return ["input", { type: "checkbox", onchange: e => setValue(e.target.checked), checked: value }];
+                                case LibSANE.SANE_TYPE.INT:
+                                case LibSANE.SANE_TYPE.FIXED:
+                                    if (opt.size == 1 && opt.constraint_type == LibSANE.SANE_CONSTRAINT.WORD_LIST) {
+                                        return selectElement(opt.constraint, true);
+                                    } else {
+                                        return ["input", { onchange: e => setValue(JSON.parse(e.target.value)), value: JSON.stringify(value) }]
+                                    }
+                                case LibSANE.SANE_TYPE.STRING:
+                                    if (opt.constraint_type == LibSANE.SANE_CONSTRAINT.STRING_LIST) {
+                                        return selectElement(opt.constraint);
+                                    } else {
+                                        return ["input", { onchange: e => setValue(JSON.parse(e.target.value)), value: JSON.stringify(value) }]
+                                    }
+                                case LibSANE.SANE_TYPE.BUTTON: return ["button", { onclick: e => setValue(null) }, opt.title];
+                                case LibSANE.SANE_TYPE.GROUP: return null;
+                            }
+                        }
+                        const result = [];
+                        let value;
+                        if (opt.cap.SOFT_DETECT) {
+                            ({ value } = await callSANE("sane_control_option_get_value", n));
+                            result.push([null, null, JSON.stringify(value)]);
+                        }
+                        if (opt.cap.SOFT_SELECT) {
+                            result.push(inputElement(value));
+                        }
+                        if (opt.cap.AUTOMATIC) {
+                            result.push(["button", { onclick: e => setValue(auto) }, "AUTO"]);
+                        }
+                        const el = document.querySelector(`#option-${n}`);
+                        el.innerHTML = "";
+                        el.appendChild(tree(result));
+                    }
+                    const option_descriptors = [];
+                    for (let opt, i = 0; opt || !i; i++) {
+                        ({ option_descriptor: opt } = await callSANE("sane_get_option_descriptor", i));
+                        if (opt) {
+                            option_descriptors.push(opt);
+                        }
+                    }
+                    const options = document.querySelector("#options");
+                    options.innerHTML = "";
+                    options.append(tree(option_descriptors.map((opt, n) => (
+                        ["div", null, [
+                            ["p", null, [
+                                `${n}: ${opt.title} [name=${opt.name}]`, ["br"],
+                                ["small", null, opt.desc], ["br"],
+                                ["small", null, `[type=${LibSANE.SANE_TYPE_toString(opt.type)}] [unit=${LibSANE.SANE_UNIT_toString(opt.unit)}] [size=${opt.size}] [cap=${JSON.stringify(opt.cap)}]`], ["br"],
+                                ["small", null, `[constraint_type=${LibSANE.SANE_CONSTRAINT_toString(opt.constraint_type)}] [constraint=${JSON.stringify(opt.constraint)}]`],
+                            ]],
+                            ["div", { id: `option-${n}` }]
+                        ]]
+                    ))));
+                    let n = 0;
+                    for (const opt of option_descriptors) {
+                        await createOptionControl(n++, opt);
+                    }
+                }
+
+                // initialization
                 window.addEventListener("load", () => {
-                    window.LibSANE().then(mod => {
+                    window.LibSANE().then(LibSANE => {
                         // publish module to window
-                        window.LibSANE = mod;
+                        window.LibSANE = LibSANE;
+                        // create enum reverse maps (toString)
+                        ["SANE_STATUS", "SANE_TYPE", "SANE_UNIT", "SANE_CONSTRAINT", "SANE_FRAME"].forEach(e => {
+                            const rev = {};
+                            Object.keys(LibSANE[e]).forEach(k => {
+                                rev[LibSANE[e][k]] = k;
+                            });
+                            LibSANE[`${e}_toString`] = v => rev[v] || null;
+                        });
                         // initialize
                         const saneControls = document.querySelector("#sane-controls");
                         saneControls.innerHTML = "";
@@ -212,9 +308,14 @@
                             ["h3", null, "Devices"],
                             ["p", null, [
                                 ["button", { onclick: e => callSANE("sane_get_devices").then(populateDevices) }, "LibSANE.sane_get_devices()"], " ",
-                                ["button", { onclick: e => callSANE("sane_close") }, "LibSANE.sane_close()"], " ",
                             ]],
                             ["ul", { id: "list-devices" }],
+                            ["p", null, [
+                                ["button", { onclick: e => callSANE("sane_get_option_descriptor", 0) }, "LibSANE.sane_get_option_descriptor(0)"], " ",
+                                ["button", { onclick: e => callSANE("sane_close") }, "LibSANE.sane_close()"], " ",
+                            ]],
+                            ["h3", null, "Options"],
+                            ["div", { id: "options" }],
                             ["h3", null, "Scan"],
                             ["p", null, [
                                 ["button", { onclick: e => callSANE("sane_get_parameters") }, "LibSANE.sane_get_parameters()"], " ",

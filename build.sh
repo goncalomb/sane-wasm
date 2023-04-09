@@ -88,7 +88,7 @@ fi
     [ -f configure ] || ./autogen.sh
     export CPPFLAGS="-I/src/deps/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
     export LDFLAGS="-L/src/deps/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
-    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --enable-pthread --disable-shared BACKENDS=pixma
+    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --enable-pthread --disable-shared BACKENDS="test pixma"
     ( cd lib ; emmake make -j )
     ( cd sanei ; emmake make -j )
     ( cd backend ; emmake make -j install )
