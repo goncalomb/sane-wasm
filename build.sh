@@ -21,14 +21,18 @@ for V in "$@"; do
     fi
 done
 
+mkdir -p build
+
 if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
     docker build . -t sane-wasm
     if [ -z "$ARG_debug" ]; then
         docker run --rm -it -eSANE_WASM_DOCKER=1 \
+            -v "$(pwd)/build:/src/build" \
             sane-wasm:latest "$@"
     else
         docker run --rm -it -eSANE_WASM_DOCKER=1 \
             -p6931:6931 \
+            -v "$(pwd)/build:/src/build" \
             -v "$(pwd)/deps/backends:/src/deps/backends" \
             -v "$(pwd)/deps/libjpeg-turbo:/src/deps/libjpeg-turbo" \
             -v "$(pwd)/deps/libusb:/src/deps/libusb" \
@@ -99,12 +103,12 @@ SANE_DIR=./deps/backends
 set -x
 $SANE_DIR/libtool --tag=CC --mode=link emcc \
     "$SANE_DIR/backend/.libs/libsane.la" "$SANE_DIR/sanei/.libs/libsanei.la" \
-    -I$SANE_DIR/include glue.cpp -o libsane.html \
+    -I$SANE_DIR/include glue.cpp -o build/libsane.html \
     --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}" \
     -sMODULARIZE -sEXPORT_NAME=LibSANE --shell-file shell.html
 set +x
 
-# ./build.sh --debug && emrun --no_browser libsane.html
+# ./build.sh --debug && emrun --no_browser build/libsane.html
 
 if [ -n "$ARG_debug" ] && [ -n "$SANE_WASM_DOCKER" ] && [ -z "$SANE_WASM_DEBUG" ]; then
     echo "spawning bash shell for debug"
