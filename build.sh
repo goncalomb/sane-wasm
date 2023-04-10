@@ -1,13 +1,17 @@
 #!/bin/bash
 
-set -e
+set -eo pipefail
 cd -- "$(dirname -- "$0")"
 
-ARGS=("with-docker" "debug")
+ARGS=("clean" "no-build" "with-docker" "debug" "emrun" "shell")
 usage() {
     echo "usage: ${0##*/} [options]"
-    echo "  --with-docker  build using docker"
-    echo "  --debug        enable debug"
+    echo "  --clean        clean 'deps' and 'build' directories"
+    echo "  --no-build     don't actually build"
+    echo "  --with-docker  run with docker (preferred)"
+    echo "  --debug        enable debug flags"
+    echo "  --emrun        run emrun development server"
+    echo "  --shell        run debug shell (depends on --with-docker)"
 }
 for A in "${ARGS[@]}"; do
     declare "ARG_${A//-/_}="
@@ -21,38 +25,54 @@ for V in "$@"; do
     fi
 done
 
-mkdir -p build
-
+# use docker
 if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
-    docker build . -t sane-wasm
-    if [ -z "$ARG_debug" ]; then
-        docker run --rm -it -eSANE_WASM_DOCKER=1 \
-            -v "$(pwd)/build:/src/build" \
-            sane-wasm:latest "$@"
-    else
-        docker run --rm -it -eSANE_WASM_DOCKER=1 \
-            -p6931:6931 \
-            -v "$(pwd)/build:/src/build" \
-            -v "$(pwd)/deps/backends:/src/deps/backends" \
-            -v "$(pwd)/deps/libjpeg-turbo:/src/deps/libjpeg-turbo" \
-            -v "$(pwd)/deps/libusb:/src/deps/libusb" \
-            -v "$(pwd)/.git/modules:/src/.git/modules:ro" \
-            -v "$(pwd)/build.sh:/src/build.sh:ro" \
-            -v "$(pwd)/glue.cpp:/src/glue.cpp:ro" \
-            -v "$(pwd)/shell.html:/src/shell.html:ro" \
-            -u "$(id -u):$(id -g)" \
-            sane-wasm:latest "$@"
+    docker build -t sane-wasm .
+    EXTRA_ARGS=()
+    if [ -n "$ARG_emrun" ]; then
+        EXTRA_ARGS+=("-p6931:6931")
     fi
+    docker run --rm -it -eSANE_WASM_DOCKER=1 \
+        -v "$PWD:/src" \
+        -u "$(id -u):$(id -g)" \
+        "${EXTRA_ARGS[@]}" \
+        sane-wasm:latest "$@"
     exit
 fi
 
-export PREFIX="$(pwd)/prefix"
-export EM_PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-
-if [ -z "$ARG_debug" ] && [ -n "$SANE_WASM_DOCKER" ] && [ -n "$SANE_WASM_DEBUG" ]; then
-    echo "while debugging inside docker '${0##*/}' must be run with '--debug'"
-    exit 1
+# clean
+if [ -n "$ARG_clean" ]; then
+    find deps -mindepth 1 -maxdepth 1 -type d | while IFS= read -r DIR; do
+        echo "cleaning '$DIR'"
+        git -C "$DIR" checkout .
+        git -C "$DIR" clean -fdx
+    done
+    echo "removing 'build'"
+    rm -rf build
 fi
+
+# post build actions
+post-build() {
+    if [ -n "$ARG_emrun" ]; then
+        echo "running emrun"
+        emrun --no_browser build/libsane.html
+    fi
+    if [ -n "$ARG_shell" ] && [ -n "$SANE_WASM_DOCKER" ] && [ -z "$SANE_WASM_SHELL" ]; then
+        echo "running bash shell"
+        SANE_WASM_SHELL=1 bash
+    fi
+}
+
+# skip build
+if [ -n "$ARG_no_build" ]; then
+    post-build
+    exit
+fi
+
+# build
+DEPS="$PWD/deps"
+PREFIX="$PWD/build/prefix"
+export EM_PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 
 D_O0G3=()
 if [ -n "$ARG_debug" ]; then
@@ -67,6 +87,9 @@ fi
         git -C "${PATCH%.patch}" apply "../$PATCH" || true # failing is expected while in debug/local mode
     done
 )
+
+# TODO: review build commands and arguments, many build arguments may not be
+#       ideal, specially libjpeg-turbo and backends
 
 # https://github.com/libjpeg-turbo/libjpeg-turbo/issues/250
 (
@@ -90,8 +113,8 @@ fi
 (
     cd deps/backends
     [ -f configure ] || ./autogen.sh
-    export CPPFLAGS="-I/src/deps/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
-    export LDFLAGS="-L/src/deps/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
+    export CPPFLAGS="-I$DEPS/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
+    export LDFLAGS="-L$DEPS/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
     [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --enable-pthread --disable-shared BACKENDS="test pixma"
     ( cd lib ; emmake make -j )
     ( cd sanei ; emmake make -j )
@@ -108,9 +131,9 @@ $SANE_DIR/libtool --tag=CC --mode=link emcc \
     -sMODULARIZE -sEXPORT_NAME=LibSANE --shell-file shell.html
 set +x
 
-# ./build.sh --debug && emrun --no_browser build/libsane.html
-
-if [ -n "$ARG_debug" ] && [ -n "$SANE_WASM_DOCKER" ] && [ -z "$SANE_WASM_DEBUG" ]; then
-    echo "spawning bash shell for debug"
-    SANE_WASM_DEBUG=1 bash
+# clean build directory on non-debug builds
+if [ -z "$ARG_debug" ]; then
+    rm -rf build/.libs build/prefix
 fi
+
+post-build
