@@ -3,12 +3,12 @@
 set -eo pipefail
 cd -- "$(dirname -- "$0")"
 
-ARGS=("clean" "no-build" "with-docker" "debug" "emrun" "shell")
+ARGS=("with-docker" "clean" "no-build" "debug" "emrun" "shell")
 usage() {
     echo "usage: ${0##*/} [options]"
+    echo "  --with-docker  run with docker (preferred)"
     echo "  --clean        clean 'deps' and 'build' directories"
     echo "  --no-build     don't actually build"
-    echo "  --with-docker  run with docker (preferred)"
     echo "  --debug        enable debug flags"
     echo "  --emrun        run emrun development server"
     echo "  --shell        run debug shell (depends on --with-docker)"
