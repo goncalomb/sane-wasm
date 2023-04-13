@@ -128,7 +128,7 @@ $SANE_DIR/libtool --tag=CC --mode=link emcc \
     "$SANE_DIR/backend/.libs/libsane.la" "$SANE_DIR/sanei/.libs/libsanei.la" \
     -I$SANE_DIR/include glue.cpp -o build/libsane.html \
     --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}" \
-    -sMODULARIZE -sEXPORT_NAME=LibSANE --shell-file shell.html
+    -sMODULARIZE -sEXPORT_NAME=LibSANE --pre-js pre.js --shell-file shell.html
 set +x
 
 # clean build directory on non-debug builds

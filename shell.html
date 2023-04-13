@@ -281,9 +281,21 @@
                     }
                 }
 
+                // reload with debug
+                function reloadWithDebug() {
+                    const sane = {
+                        debugSANE: true,
+                        debugUSB: true,
+                    };
+                    location.hash = JSON.stringify(sane);
+                    location.reload();
+                }
+
                 // initialization
                 window.addEventListener("load", () => {
-                    window.LibSANE().then(LibSANE => {
+                    const sane = JSON.parse(decodeURIComponent(location.hash.substring(1)) || null) || {};
+                    console.log("sane = ", sane);
+                    window.LibSANE({ sane }).then(LibSANE => {
                         // publish module to window
                         window.LibSANE = LibSANE;
                         // create enum reverse maps (toString)
@@ -298,6 +310,9 @@
                         const saneControls = document.querySelector("#sane-controls");
                         saneControls.innerHTML = "";
                         saneControls.append(tree([
+                            ["p", null, [
+                                ["button", { onclick: e => reloadWithDebug() }, "RELOAD WITH DEBUG (SANE+USB)"], " ",
+                            ]],
                             ["h3", null, "Initialize"],
                             ["p", null, [
                                 ["button", { onclick: e => callSANE("sane_get_state") }, "LibSANE.sane_get_state()"], " ",

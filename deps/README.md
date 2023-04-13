@@ -8,6 +8,8 @@
     * force enable pthreads (this must be fixed by addressing the underlying issues)
 * `backends/backend/pixma/pixma_common.c`:
     * disable `pixma_sleep` due to ongoing issues with pthreads
+* `sanei/sanei_init_debug.c`:
+    * implement `SANE_DEBUG_GLOBAL` environment variable to set debug level across all backends
 
 ### libusb (libusb.patch)
 
