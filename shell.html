@@ -94,12 +94,14 @@
 
                 function callSANE(name, ...args) {
                     function handleResponse(res) {
-                        console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res);
                         if (res && res.status !== undefined) {
                             if (!strstatusCache[res.status]) {
                                 strstatusCache[res.status] = LibSANE.sane_strstatus(res.status);
+                                console.log(`LibSANE.sane_strstatus(${res.status}) =`, strstatusCache[res.status]);
                             }
-                            console.log(`LibSANE.sane_strstatus(${res.status}) =`, strstatusCache[res.status]);
+                            console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res, LibSANE.SANE_STATUS.asString(res.status), strstatusCache[res.status]);
+                        } else {
+                            console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res);
                         }
                         return res;
                     }
@@ -269,8 +271,8 @@
                             ["p", null, [
                                 `${n}: ${opt.title} [name=${opt.name}]`, ["br"],
                                 ["small", null, opt.desc], ["br"],
-                                ["small", null, `[type=${LibSANE.SANE_TYPE_toString(opt.type)}] [unit=${LibSANE.SANE_UNIT_toString(opt.unit)}] [size=${opt.size}] [cap=${JSON.stringify(opt.cap)}]`], ["br"],
-                                ["small", null, `[constraint_type=${LibSANE.SANE_CONSTRAINT_toString(opt.constraint_type)}] [constraint=${JSON.stringify(opt.constraint)}]`],
+                                ["small", null, `[type=${LibSANE.SANE_TYPE.asString(opt.type)}] [unit=${LibSANE.SANE_UNIT.asString(opt.unit)}] [size=${opt.size}] [cap=${JSON.stringify(opt.cap)}]`], ["br"],
+                                ["small", null, `[constraint_type=${LibSANE.SANE_CONSTRAINT.asString(opt.constraint_type)}] [constraint=${JSON.stringify(opt.constraint)}]`],
                             ]],
                             ["div", { id: `option-${n}` }]
                         ]]
@@ -298,14 +300,6 @@
                     window.LibSANE({ sane }).then(LibSANE => {
                         // publish module to window
                         window.LibSANE = LibSANE;
-                        // create enum reverse maps (toString)
-                        ["SANE_STATUS", "SANE_TYPE", "SANE_UNIT", "SANE_CONSTRAINT", "SANE_FRAME"].forEach(e => {
-                            const rev = {};
-                            Object.keys(LibSANE[e]).forEach(k => {
-                                rev[LibSANE[e][k]] = k;
-                            });
-                            LibSANE[`${e}_toString`] = v => rev[v] || null;
-                        });
                         // initialize
                         const saneControls = document.querySelector("#sane-controls");
                         saneControls.innerHTML = "";
