@@ -306,6 +306,7 @@
                         saneControls.append(tree([
                             ["p", null, [
                                 ["button", { onclick: e => reloadWithDebug() }, "RELOAD WITH DEBUG (SANE+USB)"], " ",
+                                ["small", null, `${LibSANE.SANE_WASM_VERSION} (${LibSANE.SANE_WASM_COMMIT})`],
                             ]],
                             ["h3", null, "Initialize"],
                             ["p", null, [

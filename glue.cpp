@@ -5,6 +5,8 @@
 #include <string.h>
 #include <string>
 
+#include "build/version.h"
+
 using namespace emscripten;
 
 #define BUFFER_LEN 2*1024*1024
@@ -531,6 +533,8 @@ int main() {
 }
 
 EMSCRIPTEN_BINDINGS(sane_bindings) {
+    constant("SANE_WASM_COMMIT", val(SANE_WASM_COMMIT));
+    constant("SANE_WASM_VERSION", val(SANE_WASM_VERSION));
     constant("SANE_CURRENT_MAJOR", SANE_CURRENT_MAJOR);
     constant("SANE_CURRENT_MINOR", SANE_CURRENT_MINOR);
     function("sane_get_state", &sane::sane_get_state);

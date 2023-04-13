@@ -70,6 +70,18 @@ if [ -n "$ARG_no_build" ]; then
 fi
 
 # build
+mkdir -p build
+
+SANE_WASM_COMMIT=$(git rev-parse HEAD)
+SANE_WASM_VERSION=$(git describe --tags --always --dirty)
+if [ -n "$ARG_debug" ]; then
+    SANE_WASM_VERSION="$SANE_WASM_VERSION-debug"
+fi
+cat <<EOF >build/version.h
+#define SANE_WASM_COMMIT "$SANE_WASM_COMMIT"
+#define SANE_WASM_VERSION "$SANE_WASM_VERSION"
+EOF
+
 DEPS="$PWD/deps"
 PREFIX="$PWD/build/prefix"
 export EM_PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
@@ -133,7 +145,7 @@ set +x
 
 # clean build directory on non-debug builds
 if [ -z "$ARG_debug" ]; then
-    rm -rf build/.libs build/prefix
+    rm -rf build/.libs build/prefix build/version.h
 fi
 
 post-build
