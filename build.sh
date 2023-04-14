@@ -32,11 +32,57 @@ if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
     if [ -n "$ARG_emrun" ]; then
         EXTRA_ARGS+=("-p6931:6931")
     fi
+
+    # MAGIC to make docker build work with submodules.
+    # This is only required if sane-wasm itself is being used as a submodule
+    # not for a standalone build.
+    # Don't ask me to explain this because I forgot how it works right after
+    # typing the last command. Let's just say it uses some fake git configs
+    # and many docker bind volume mounts. Please don't stare. @goncalomb
+    # XXX: remove this madness when we have proper releases
+    if [ -f .git ]; then
+        echo "submodule build detected, magic activated"
+        LOCAL_FAUX="$PWD/faux-git"
+        DOCKER_FAUX="/tmp/faux-git"
+        GIT_REL_P=$(sed "s/gitdir: //g" .git)
+        GIT_ABS_P=$(realpath -- "$PWD/$GIT_REL_P")
+        EXTRA_ARGS+=(-v "$GIT_ABS_P:$DOCKER_FAUX/git")
+        while IFS= read -r ARG; do
+            EXTRA_ARGS+=("$ARG")
+        done < <({
+            echo "."
+            git submodule --quiet foreach --recursive pwd
+        } | while IFS= read -r DIR; do (
+            REL=$(realpath --relative-to "$PWD" -- "$DIR")
+            TMP="$LOCAL_FAUX/$REL"
+            echo "-v"
+            echo "$LOCAL_FAUX/$REL/git:/src/$REL/.git"
+            mkdir -p "$TMP"
+            cd "$REL"
+            GIT_REL=$(sed "s/gitdir: //g" .git)
+            GIT_ABS=$(realpath -- "$PWD/$GIT_REL")
+            cp "$GIT_REL/config" "$TMP/"
+            GIT_DIR_REL=$(realpath --relative-to "$GIT_ABS_P" "$GIT_ABS")
+            echo "gitdir: $DOCKER_FAUX/git/$GIT_DIR_REL" >"$TMP/git"
+            cd "$TMP"
+            git config --file config "core.worktree" "/src/$REL"
+            echo "-v"
+            echo "$LOCAL_FAUX/$REL/config:$DOCKER_FAUX/git/$GIT_DIR_REL/config"
+        ) done)
+    fi
+    # MAGIC end
+
     docker run --rm -it -eSANE_WASM_DOCKER=1 \
         -v "$PWD:/src" \
         -u "$(id -u):$(id -g)" \
         "${EXTRA_ARGS[@]}" \
         sane-wasm:latest "$@"
+
+    # MAGIC cleanup
+    if [ -f .git ]; then
+        rm -rf faux-git
+    fi
+
     exit
 fi
 
