@@ -1,5 +1,5 @@
-FROM emscripten/emsdk:3.1.20
+FROM emscripten/emsdk:3.1.36
 
-RUN apt update && apt install -y automake autoconf autoconf-archive autopoint libtool gettext pkg-config
+RUN apt-get update && apt-get install -y automake autoconf autoconf-archive autopoint libtool gettext pkg-config
 
 ENTRYPOINT ["./build.sh"]

@@ -1,21 +1,25 @@
 # Dependencies
 
+* [backends](backends): SANE API (backends)
+* [libjpeg-turbo](libjpeg-turbo): libjpeg required for some SANE backends
+* [libusb](libusb): libusb with emscripten support, core SANE dependency
+
 ## Patches
 
-### SANE (backends.patch)
+Some dependencies receive patches to make them compatible with the build environment or to fix other related issues. Extra features can also be added. Fixes and features not related to wasm and emscripten should be pushed upstream.
+
+### SANE API (backends.patch)
 
 * `backends/acinclude.m4`:
-    * force enable pthreads (this must be fixed by addressing the underlying issues)
-* `backends/backend/pixma/pixma_common.c`:
-    * disable `pixma_sleep` due to ongoing issues with pthreads
+    * (HACK) force enable pthreads, during compile configuration pthreads support is not detected, the underlying issue should be eventually addressed, forcing it works for now
 * `sanei/sanei_init_debug.c`:
-    * implement `SANE_DEBUG_GLOBAL` environment variable to set debug level across all backends
+    * (FEATURE) implement `SANE_DEBUG_GLOBAL` environment variable to set debug level across all backends
 
 ### libusb (libusb.patch)
 
-* `libusb/libusb/os/events_posix.c`:
-    * fix issue with event timeouts
 * `libusb/libusb/os/emscripten_webusb.cpp`:
-    * fix close function not waiting for WebUSB promise
-    * fix cancel function not signaling transfer completion
-    * implement rudimentary support for multi-threading by proxying critical calls back to the main thread (this should be improved)
+    * (FIX) fix close function not waiting for WebUSB promise
+    * (FIX) fix cancel function not signaling transfer completion
+    * (HACK) implement rudimentary support for multi-threading by proxying critical calls back to the main thread, the remaining functions may also need to be proxied in the future, probably the long-term goal is just proxy all calls to a separate thread (not the main one)
+* `libusb/libusb/os/events_posix.c`:
+    * (HACK) patch for basic multi-threading support (very hacky)

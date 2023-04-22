@@ -20,19 +20,6 @@ index 71e22c8d4..5e7169e83 100644
    )
    AC_MSG_RESULT($ac_pthread_t_is_integer)
    if test "$ac_pthread_t_is_integer" = yes ; then
-diff --git a/backend/pixma/pixma_common.c b/backend/pixma/pixma_common.c
-index f626db13a..00c5e0688 100644
---- a/backend/pixma/pixma_common.c
-+++ b/backend/pixma/pixma_common.c
-@@ -314,7 +314,7 @@ pixma_sum_bytes (const void *data, unsigned len)
- void
- pixma_sleep (unsigned long usec)
- {
--  usleep (usec);
-+  // usleep (usec);
- }
- 
- void
 diff --git a/sanei/sanei_init_debug.c b/sanei/sanei_init_debug.c
 index 690cc2eca..04ed627f7 100644
 --- a/sanei/sanei_init_debug.c
