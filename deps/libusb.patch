@@ -172,7 +172,7 @@ index 325a3a1f..129da3c2 100644
      .transfer_priv_size = sizeof(val),
  };
 diff --git a/libusb/os/events_posix.c b/libusb/os/events_posix.c
-index 2ba01033..8fd8220d 100644
+index 2ba01033..7fd39637 100644
 --- a/libusb/os/events_posix.c
 +++ b/libusb/os/events_posix.c
 @@ -37,23 +37,60 @@
@@ -238,3 +238,19 @@ index 2ba01033..8fd8220d 100644
  		clearTimeout(timeoutId);
  	}
  });
+@@ -268,6 +305,15 @@ int usbi_wait_for_events(struct libusb_context *ctx,
+ 		int timeout = until_time - emscripten_get_now();
+ 		if (timeout <= 0) break;
+ 		int result = em_libusb_wait(timeout);
++		// emscripten_sleep required after EM_ASYNC_JS call to fix issue with
++		// unwind and live runtimes, see:
++		// https://github.com/emscripten-core/emscripten/issues/12814
++		// https://github.com/emscripten-core/emscripten/issues/18442
++		// maybe related to:
++		// https://github.com/emscripten-core/emscripten/issues/13193
++		// https://github.com/emscripten-core/emscripten/pull/13335
++		// XXX: is this fixed?
++		emscripten_sleep(0);
+ 		if (result != 0) break;
+ 	}
+ #else
