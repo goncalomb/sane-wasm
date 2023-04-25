@@ -135,10 +135,15 @@ namespace sane {
         return build_response(status, "version_code", val(version_code));
     }
 
-    void sane_exit() {
+    val sane_exit() {
+        if (!version_code) {
+            return build_response(SANE_STATUS_INVAL);
+        }
+
         ::sane_exit();
         version_code = 0;
         handle = NULL;
+        return build_response(SANE_STATUS_GOOD);
     }
 
     val sane_get_devices() {
@@ -167,11 +172,14 @@ namespace sane {
         return build_response(status);
     }
 
-    void sane_close() {
-        if (handle) {
-            ::sane_close(handle);
-            handle = NULL;
+    val sane_close() {
+        if (!handle) {
+            return build_response(SANE_STATUS_INVAL);
         }
+
+        ::sane_close(handle);
+        handle = NULL;
+        return build_response(SANE_STATUS_GOOD);
     }
 
     val sane_get_option_descriptor(int option) {
@@ -527,6 +535,7 @@ int main() {
 EMSCRIPTEN_BINDINGS(sane_bindings) {
     constant("SANE_WASM_COMMIT", val(SANE_WASM_COMMIT));
     constant("SANE_WASM_VERSION", val(SANE_WASM_VERSION));
+    constant("SANE_WASM_BACKENDS", val(SANE_WASM_BACKENDS));
     constant("SANE_CURRENT_MAJOR", SANE_CURRENT_MAJOR);
     constant("SANE_CURRENT_MINOR", SANE_CURRENT_MINOR);
     function("sane_get_state", &sane::sane_get_state);

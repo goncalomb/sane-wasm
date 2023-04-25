@@ -273,6 +273,7 @@
                         debugSANE: true,
                         debugUSB: true,
                         debugFunctionCalls: true,
+                        debugTestDevices: 5,
                     };
                     location.hash = JSON.stringify(sane);
                     location.reload();
@@ -280,7 +281,10 @@
 
                 // initialization
                 window.addEventListener("load", () => {
-                    const sane = JSON.parse(decodeURIComponent(location.hash.substring(1)) || null) || {};
+                    const sane = JSON.parse(decodeURIComponent(location.hash.substring(1)) || null) || {
+                        debugFunctionCalls: true,
+                        debugTestDevices: 3,
+                    };
                     console.log("sane = ", sane);
                     window.LibSANE({ sane }).then(LibSANE => {
                         // publish module to window
@@ -292,6 +296,12 @@
                             ["p", null, [
                                 ["button", { onclick: e => reloadWithDebug() }, "RELOAD WITH DEBUG (SANE+USB)"], " ",
                                 ["small", null, `${LibSANE.SANE_WASM_VERSION} (${LibSANE.SANE_WASM_COMMIT})`],
+                            ]],
+                            ["p", null, [
+                                ["small", null, [
+                                    ["strong", null, `SANE backends (${LibSANE.SANE_WASM_BACKENDS.split(" ").length}): `],
+                                    LibSANE.SANE_WASM_BACKENDS
+                                ]],
                             ]],
                             ["h3", null, "Initialize"],
                             ["p", null, [

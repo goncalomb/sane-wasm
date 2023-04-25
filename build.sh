@@ -116,7 +116,42 @@ if [ -n "$ARG_no_build" ]; then
 fi
 
 # build
+rm -rf build
 mkdir -p build
+
+# These SANE backends were selected manually, each backend includes at least
+# one supported USB device.
+# http://www.sane-project.org/sane-backends.html
+SANE_BACKENDS=()
+# XXX: genesys backend not included, causes lockup during sane_get_devices
+# TODO: explore the possibility of automatically picking the backends from
+#       backends/doc/descriptions, choosing the ones that support usb
+# scanners
+SANE_BACKENDS+=(
+artec_eplus48u avision
+canon630u canon_dr canon_lide70 cardscan coolscan2 coolscan3
+epjitsu epson epson2 epsonds
+fujitsu
+gt68xx
+hp hp3500 hp3900 hp4200 hp5400 hp5590 hpljm1005
+kodakaio kvs20xx kvs40xx kvs1025
+lexmark
+ma1509 magicolor microtek2 mustek_usb mustek_usb2
+niash
+pieusb pixma plustek
+ricoh2 rts8891
+sm3600 sm3840 snapscan
+u12 umax1220u
+xerox_mfp
+)
+# still cameras
+SANE_BACKENDS+=() # none supported
+# video cameras
+SANE_BACKENDS+=(stv680)
+# meta backends
+SANE_BACKENDS+=() # none supported
+# apis
+SANE_BACKENDS+=(test) # gphoto2 v4l ?
 
 SANE_WASM_COMMIT=$(git rev-parse HEAD)
 SANE_WASM_VERSION=$(git describe --tags --always --dirty)
@@ -126,12 +161,15 @@ fi
 cat <<EOF >build/version.h
 #define SANE_WASM_COMMIT "$SANE_WASM_COMMIT"
 #define SANE_WASM_VERSION "$SANE_WASM_VERSION"
+#define SANE_WASM_BACKENDS "${SANE_BACKENDS[*]}"
 EOF
 
 DEPS="$PWD/deps"
+SANE="$DEPS/backends"
 PREFIX="$PWD/build/prefix"
 export EM_PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 
+# debug flags
 D_O0G3=()
 if [ -n "$ARG_debug" ]; then
     D_O0G3=("-O0" "-g3")
@@ -142,25 +180,23 @@ fi
     cd deps
     find . -mindepth 1 -maxdepth 1 -type f -name "*.patch" -printf "%f\n" | while IFS= read -r PATCH; do
         echo "applying '$PATCH'"
-        git -C "${PATCH%.patch}" apply "../$PATCH" || true # failing is expected while in debug/local mode
+        git -C "${PATCH%.patch}" apply "../$PATCH" || true # failing is expected on non-clean builds (patch already applied)
     done
 )
 
-# TODO: review build commands and arguments, many build arguments may not be
-#       ideal, specially libjpeg-turbo and backends
-
+# libjpeg-turbo
 # https://github.com/libjpeg-turbo/libjpeg-turbo/issues/250
 (
     cd deps/libjpeg-turbo
-    export LDFLAGS="--emrun"
-    [ -f Makefile ] || emcmake cmake -G"Unix Makefiles" \
-            -DCMAKE_EXECUTABLE_SUFFIX=.html \
-            -DWITH_SIMD=0 -DENABLE_SHARED=0 \
-            -DCMAKE_C_FLAGS="-Wall -s ALLOW_MEMORY_GROWTH=1" .
+    export LDFLAGS="-sALLOW_MEMORY_GROWTH"
+    [ -f Makefile ] || emcmake cmake -DWITH_SIMD=0 -DENABLE_SHARED=0 .
     emmake make -j jpeg-static
 )
 
+# libusb
 # https://web.dev/porting-libusb-to-webusb/
+# https://web.dev/porting-gphoto2-to-the-web/
+# https://github.com/libusb/libusb/pull/1057
 (
     cd deps/libusb
     [ -f configure ] || NOCONFIGURE=1 ./autogen.sh
@@ -168,25 +204,58 @@ fi
     emmake make -j install
 )
 
+# backends
 (
     cd deps/backends
     [ -f configure ] || ./autogen.sh
     export CPPFLAGS="-I$DEPS/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
     export LDFLAGS="-L$DEPS/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
-    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --enable-pthread --disable-shared BACKENDS="test pixma"
-    ( cd lib ; emmake make -j )
-    ( cd sanei ; emmake make -j )
-    ( cd backend ; emmake make -j install )
+    export BACKENDS="${SANE_BACKENDS[*]}"
+    # XXX: Force enable mmap, configure can't detect valid mmap, force it on!
+    # I've looked briefly into this, it's probably emscripten's implementation
+    # that is not complete, mmap appears to only be used by the pieusb backend
+    # consider disabling it if this is problematic.
+    [ -f Makefile ] || sed -i "s/ac_cv_func_mmap_fixed_mapped=no/ac_cv_func_mmap_fixed_mapped=yes/g" configure
+    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32 --enable-pthread --disable-shared
+    # make only the required parts
+    emmake make -j -C lib
+    emmake make -j -C sanei
+    emmake make -j -C backend install
 )
 
-SANE_DIR=./deps/backends
+# Truncate dll.conf, this file sets which backends are enabled, but because we
+# are doing a static build without shared libraries we don't really need it
+# (all backends are always enabled). Leaving other backends listed on that file
+# causes SANE to try to dynamically load them, we don't need that.
+: >"$PREFIX/etc/sane.d/dll.conf"
 
+# Set test backend's number of devices to 0.
+# XXX: Oops what? There is some kind of invalid memory access on the backend
+#      file deps/backends/backend/test.c, setting number_of_devices to 0 causes
+#      some weird behavior and it's as if 1 device was selected.
+#      I've looked briefly into this, but was unable to find the cause,
+#      it's somehow related to how the option is read with:
+#      read_option (line, "number_of_devices", ...
+#      and then used on a for loop:
+#      for (num = 0; num < init_number_of_devices; num++)
+#      that loop should never run with init_number_of_devices = 0.
+#      I've tested this config on my linux distribution version of SANE and
+#      it triggers a Segmentation Fault so there is definitely a problem there.
+# XXX: Setting it to -999 for now, fix this, and revert this to 0.
+#      The fix should probably be pushed upstream to SANE itself:
+#      https://gitlab.com/sane-project/backends/-/issues
+sed -i "s/^number_of_devices .*/number_of_devices -999/g" "$PREFIX/etc/sane.d/test.conf"
+
+# build sane-wasm itself (with glue.cpp)
 set -x
-$SANE_DIR/libtool --tag=CC --mode=link emcc \
-    "$SANE_DIR/backend/.libs/libsane.la" "$SANE_DIR/sanei/.libs/libsanei.la" \
-    -I$SANE_DIR/include glue.cpp -o build/libsane.html \
-    --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 -pthread "${D_O0G3[@]}" \
-    -sMODULARIZE -sEXPORT_NAME=LibSANE --pre-js pre.js --shell-file shell.html
+"$SANE/libtool" --tag=CC --mode=link emcc \
+    "-I$SANE/include" "$SANE/backend/.libs/libsane.la" "$SANE/sanei/.libs/libsanei.la" \
+    glue.cpp -o build/libsane.html "${D_O0G3[@]}" \
+    --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 \
+    --preload-file="$PREFIX/etc/sane.d@/etc/sane.d" \
+    -sEXPORTED_RUNTIME_METHODS=FS \
+    -sMODULARIZE -sEXPORT_NAME=LibSANE \
+    --pre-js pre.js --shell-file shell.html
 set +x
 
 # clean build directory on non-debug builds

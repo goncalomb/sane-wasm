@@ -38,6 +38,7 @@
         debugSANE: false,
         debugUSB: false,
         debugFunctionCalls: false,
+        debugTestDevices: 0,
         promisify: true,
         promisifyQueue: true,
         ...(Module.sane || {})
@@ -47,6 +48,7 @@
     Module.postRun = Module.postRun || [];
 
     Module.preRun.push(() => {
+        ENV.SANE_CONFIG_DIR = "/etc/sane.d";
         if (Module.sane.debugSANE) {
             // see ./deps/backends/sanei/sanei_init_debug.c
             // each sane backend uses different numbers for different verbosity levels
@@ -62,10 +64,31 @@
         }
     });
 
+    // We don't really use the main() function for any library calls,
+    // so using preRun or postRun here is almost identical.
+    // The library just starts working when we call sane_init externally.
+
     Module.postRun.push(() => {
         ["SANE_STATUS", "SANE_TYPE", "SANE_UNIT", "SANE_CONSTRAINT", "SANE_FRAME"].forEach(s => {
             EnumSANE.promote(Module[s]);
         });
+
+        if (Module.sane.debugTestDevices) {
+            let buf = Module.FS.readFile("/etc/sane.d/test.conf");
+            let match = false;
+            const arr = (new TextDecoder()).decode(buf).split("\n").map(l => {
+                if (l.match(/^\s*number_o_devices\s+.*$/)) {
+                    match = true;
+                    return `number_of_devices ${Module.sane.debugTestDevices}`;
+                }
+                return l;
+            });
+            if (!match) {
+                arr.push(`number_of_devices ${Module.sane.debugTestDevices}`, "");
+            }
+            buf = (new TextEncoder()).encode(arr.join("\n"));
+            Module.FS.writeFile("/etc/sane.d/test.conf", buf);
+        }
 
         if (Module.sane.debugFunctionCalls) {
             const wrap = (fn) => (...args) => {
