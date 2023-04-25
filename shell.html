@@ -93,24 +93,8 @@
                 const strstatusCache = {};
 
                 function callSANE(name, ...args) {
-                    function handleResponse(res) {
-                        if (res && res.status !== undefined) {
-                            if (!strstatusCache[res.status]) {
-                                strstatusCache[res.status] = LibSANE.sane_strstatus(res.status);
-                                console.log(`LibSANE.sane_strstatus(${res.status}) =`, strstatusCache[res.status]);
-                            }
-                            console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res, LibSANE.SANE_STATUS.asString(res.status), strstatusCache[res.status]);
-                        } else {
-                            console.log(`LibSANE.${name}(${args.length ? "..." : ""}) =`, res);
-                        }
-                        return res;
-                    }
                     const res = LibSANE[name](...args);
-                    if (res instanceof Promise) {
-                        console.log(`LibSANE.${name}(${args.length ? "..." : ""}) ASYNC`);
-                        return res.then(handleResponse);
-                    }
-                    return Promise.resolve(res).then(handleResponse);
+                    return res instanceof Promise ? res : Promise.resolve(res);
                 }
 
                 // XXX: improve this
@@ -288,6 +272,7 @@
                     const sane = {
                         debugSANE: true,
                         debugUSB: true,
+                        debugFunctionCalls: true,
                     };
                     location.hash = JSON.stringify(sane);
                     location.reload();

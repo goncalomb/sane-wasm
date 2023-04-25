@@ -111,7 +111,7 @@ namespace sane {
         {"BLUE", SANE_FRAME_BLUE},
     };
 
-    val sane_get_state() { // sync
+    val sane_get_state() {
         val version = val::object();
         version.set("major", SANE_VERSION_MAJOR(version_code));
         version.set("minor", SANE_VERSION_MINOR(version_code));
@@ -124,7 +124,7 @@ namespace sane {
         return state;
     }
 
-    val sane_init() { // XXX: sync?
+    val sane_init() {
         if (version_code) {
             return build_response(SANE_STATUS_INVAL, "version_code");
         }
@@ -136,16 +136,12 @@ namespace sane {
     }
 
     void sane_exit() {
-        emscripten_sleep(0); // force async
-
         ::sane_exit();
         version_code = 0;
         handle = NULL;
     }
 
     val sane_get_devices() {
-        emscripten_sleep(0); // force async
-
         const SANE_Device **device_list;
         SANE_Status status = ::sane_get_devices(&device_list, SANE_TRUE);
         RETURN_IF_ERROR_KEY(status, "devices");
@@ -163,8 +159,6 @@ namespace sane {
     }
 
     val sane_open(std::string devicename) {
-        emscripten_sleep(0); // force async
-
         if (!version_code || handle) {
             return build_response(SANE_STATUS_INVAL);
         }
@@ -174,15 +168,13 @@ namespace sane {
     }
 
     void sane_close() {
-        emscripten_sleep(0); // force async
-
         if (handle) {
             ::sane_close(handle);
             handle = NULL;
         }
     }
 
-    val sane_get_option_descriptor(int option) { // sync
+    val sane_get_option_descriptor(int option) {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL, "option_descriptor");
         }
@@ -249,7 +241,7 @@ namespace sane {
         return build_response(SANE_STATUS_GOOD, "option_descriptor", option_descriptor);
     }
 
-    val sane_control_option_get_value(int option) { // XXX: sync?
+    val sane_control_option_get_value(int option) {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL, "value");
         }
@@ -322,7 +314,7 @@ namespace sane {
         return build_response(status, "value", value);
     }
 
-    val sane_control_option_set_value(int option, val value) { // XXX: sync?
+    val sane_control_option_set_value(int option, val value) {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL, "info");
         }
@@ -425,14 +417,14 @@ namespace sane {
         return build_response(status, "info", bitmap_info_to_val(info));
     }
 
-    val sane_control_option_set_auto(int option) { // XXX: sync?
+    val sane_control_option_set_auto(int option) {
         SANE_Int info = 0;
         SANE_Status status = ::sane_control_option(handle, option, SANE_ACTION_SET_AUTO, NULL, &info);
         RETURN_IF_ERROR_KEY(status, "info");
         return build_response(status, "info", bitmap_info_to_val(info));
     }
 
-    val sane_get_parameters() { // sync
+    val sane_get_parameters() {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL, "parameters");
         }
@@ -451,7 +443,7 @@ namespace sane {
         return build_response(status, "parameters", parameters);
     }
 
-    val sane_start() { // sync
+    val sane_start() {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL);
         }
@@ -460,7 +452,7 @@ namespace sane {
         return build_response(status);
     }
 
-    val sane_read() { // sync
+    val sane_read() {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL, "data");
         }
@@ -471,7 +463,7 @@ namespace sane {
         return build_response(status, "data", data);
     }
 
-    val sane_cancel() { // sync
+    val sane_cancel() {
         if (!handle) {
             return build_response(SANE_STATUS_INVAL);
         }
@@ -480,7 +472,7 @@ namespace sane {
         return build_response(SANE_STATUS_GOOD);
     }
 
-    val sane_strstatus(int status) { // sync
+    val sane_strstatus(int status) {
         return val(::sane_strstatus((SANE_Status) status));
     }
 
