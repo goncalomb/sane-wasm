@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SANE WebAssembly (sane-wasm)
+# Copyright (C) 2023 Gonçalo MB <me@goncalomb.com>
+# GNU GPLv2 + GNU LGPLv2.1
+
 set -eo pipefail
 cd -- "$(dirname -- "$0")"
 

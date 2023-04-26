@@ -126,3 +126,7 @@ _documentation in progress, the API may still suffer changes_
 `LibSANE.sane_cancel`
 
 `LibSANE.sane_strstatus`
+
+# License
+
+Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I releasing this project with dual licensing [GNU GPLv2](LICENSE.txt) + [GNU LGPLv2.1](LICENSE-LGPL.txt). IANAL, you choose.
