@@ -2,6 +2,10 @@
 
 A project to bring the [SANE API](http://www.sane-project.org/intro.html) to the web.
 
+Currently, it only supports USB scanners and was only tested on a browser environment (WebUSB).
+
+This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://web.dev/porting-libusb-to-webusb/) ([more](https://web.dev/porting-gphoto2-to-the-web/)), this libusb backend [required some patching](deps/libusb.patch) support multi-threading.
+
 ## Building
 
 Building requires [emscripten](https://github.com/emscripten-core/emscripten) and all the required tools to build the dependencies.
@@ -63,11 +67,17 @@ Some safeguards are in place to avoid API misuse and prevent memory leaks. It's 
 
 The most important difference with the underlying SANE API is that **device handles are not exposed**. This means that `sane_open()` does not return a device handle. A single handle is managed by the internal code. This effectively means that **only one device can be accessed at a time**. This was a design decision made to simplify the API and prevent other issues.
 
-Personally, I (goncalomb) believe that this is a acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time.
+> Personally, I (@goncalomb) believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time.
 
 ### Constants
 
 _documentation in progress, the API may still suffer changes_
+
+`LibSANE.SANE_WASM_COMMIT`
+
+`LibSANE.SANE_WASM_VERSION`
+
+`LibSANE.SANE_WASM_BACKENDS`
 
 `LibSANE.SANE_CURRENT_MAJOR` (number) = SANE C macro `SANE_CURRENT_MAJOR`
 
@@ -87,7 +97,7 @@ _documentation in progress, the API may still suffer changes_
 
 _documentation in progress, the API may still suffer changes_
 
-`LibSANE.sane_get_state` (extra function)
+`LibSANE.sane_get_state` (extra function, not part of the SANE API)
 
 `LibSANE.sane_init`
 
