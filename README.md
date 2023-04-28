@@ -2,9 +2,20 @@
 
 A project to bring the [SANE API](http://www.sane-project.org/intro.html) to the web.
 
-Currently, it only supports USB scanners and was only tested on a browser environment (WebUSB).
+Currently, it only supports USB scanners and is only tested on a browser environment (WebUSB).
 
-This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://web.dev/porting-libusb-to-webusb/) ([more](https://web.dev/porting-gphoto2-to-the-web/)), this libusb backend [required some patching](deps/libusb.patch) support multi-threading.
+This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://github.com/libusb/libusb/pull/1057) ([1](https://web.dev/porting-libusb-to-webusb/)/[2](https://web.dev/porting-gphoto2-to-the-web/)) with [some patching](deps/libusb.patch) to support multi-threading.
+
+Right now, it includes [all backends](http://www.sane-project.org/lists/sane-backends-cvs.html) that have support for at least one USB device (genesys is not included due to issues). No [external backends](http://www.sane-project.org/lists/sane-backends-external.html) are included at the moment.
+
+## WebScan
+
+**Check [webscan.goncalomb.com](https://webscan.goncalomb.com/) for a demo of sane-wasm.** This is a React application that uses sane-wasm for document/image scanning directly in the browser. Exposes all scanning options to the user for full control.
+
+If you are interested in seeing the compiled output of sane-wasm, check:
+
+* [webscan.goncalomb.com/sane-wasm/](https://webscan.goncalomb.com/sane-wasm/): all files
+* [webscan.goncalomb.com/sane-wasm/libsane.html](https://webscan.goncalomb.com/sane-wasm/): test page
 
 ## Building
 
@@ -67,7 +78,7 @@ Some safeguards are in place to avoid API misuse and prevent memory leaks. It's 
 
 The most important difference with the underlying SANE API is that **device handles are not exposed**. This means that `sane_open()` does not return a device handle. A single handle is managed by the internal code. This effectively means that **only one device can be accessed at a time**. This was a design decision made to simplify the API and prevent other issues.
 
-> Personally, I (@goncalomb) believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time.
+> Personally, I believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time. @goncalomb
 
 ### Constants
 
@@ -127,6 +138,6 @@ _documentation in progress, the API may still suffer changes_
 
 `LibSANE.sane_strstatus`
 
-# License
+## License
 
 Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I releasing this project with dual licensing [GNU GPLv2](LICENSE.txt) + [GNU LGPLv2.1](LICENSE-LGPL.txt). IANAL, you choose.
