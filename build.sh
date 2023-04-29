@@ -123,39 +123,17 @@ fi
 rm -rf build
 mkdir -p build
 
-# These SANE backends were selected manually, each backend includes at least
-# one supported USB device.
+# The backends are selected automatically by reading SANE's .desc files and
+# selecting the backends that support at least one USB device.
 # http://www.sane-project.org/sane-backends.html
-SANE_BACKENDS=()
-# XXX: genesys backend not included, causes lockup during sane_get_devices
-# TODO: explore the possibility of automatically picking the backends from
-#       backends/doc/descriptions, choosing the ones that support usb
-# scanners
-SANE_BACKENDS+=(
-artec_eplus48u avision
-canon630u canon_dr canon_lide70 cardscan coolscan2 coolscan3
-epjitsu epson epson2 epsonds
-fujitsu
-gt68xx
-hp hp3500 hp3900 hp4200 hp5400 hp5590 hpljm1005
-kodakaio kvs20xx kvs40xx kvs1025
-lexmark
-ma1509 magicolor microtek2 mustek_usb mustek_usb2
-niash
-pieusb pixma plustek
-ricoh2 rts8891
-sm3600 sm3840 snapscan
-u12 umax1220u
-xerox_mfp
-)
-# still cameras
-SANE_BACKENDS+=() # none supported
-# video cameras
-SANE_BACKENDS+=(stv680)
-# meta backends
-SANE_BACKENDS+=() # none supported
-# apis
-SANE_BACKENDS+=(test) # gphoto2 v4l ?
+# Extra backends:
+#   test: for testing
+#   gphoto2,v4l: not enabled ATM, XXX: check compatibility and usefulness
+# Excluded backends:
+#   template,unsupported: not real backends
+#   dell1600n_net: doesn't really support any USB device
+#   genesys: causes lockup during sane_get_devices, XXX: to be fixed
+SANE_WASM_BACKENDS=$(./utils.py usb-backends -i test -e template,unsupported,dell1600n_net,genesys)
 
 SANE_WASM_COMMIT=$(git rev-parse HEAD)
 SANE_WASM_VERSION=$(git describe --tags --always --dirty)
@@ -165,7 +143,7 @@ fi
 cat <<EOF >build/version.h
 #define SANE_WASM_COMMIT "$SANE_WASM_COMMIT"
 #define SANE_WASM_VERSION "$SANE_WASM_VERSION"
-#define SANE_WASM_BACKENDS "${SANE_BACKENDS[*]}"
+#define SANE_WASM_BACKENDS "$SANE_WASM_BACKENDS"
 EOF
 
 DEPS="$PWD/deps"
@@ -214,7 +192,7 @@ fi
     [ -f configure ] || ./autogen.sh
     export CPPFLAGS="-I$DEPS/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
     export LDFLAGS="-L$DEPS/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
-    export BACKENDS="${SANE_BACKENDS[*]}"
+    export BACKENDS="$SANE_WASM_BACKENDS"
     # XXX: Force enable mmap, configure can't detect valid mmap, force it on!
     # I've looked briefly into this, it's probably emscripten's implementation
     # that is not complete, mmap appears to only be used by the pieusb backend
