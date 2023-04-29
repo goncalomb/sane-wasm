@@ -55,6 +55,22 @@
     }
     EnumSANE.reverseObject = Symbol("reverseObject");
 
+    // Many SANE functions are expected to return a promise, even though
+    // they originally are blocking calls. This happens because we use
+    // emscripten's asyncify feature.
+    // https://emscripten.org/docs/porting/asyncify.html
+    // So calls that would block (because they call sleep, access libusb, wait
+    // for web apis, etc.) just return a promise.
+    // A call only returns a promise if it falls in one of those cases that
+    // triggers asyncify.
+    // To normalize the API, we wrap SANE functions that have change to be
+    // async in a promise (to make sure they always return a promise).
+    // We call that promisify.
+    // Because of the complex code path of all SANE backends, and the use of
+    // indirect calls, it's not known if all SANE functions need to be wrapped.
+    // XXX: If any new functions are found to possibly return a promise,
+    //      add them to the list. THIS WILL CAUSE THE PUBLIC API TO CHANGE.
+
     const libFunctionsAsync = { // true = promise return is expected
         sane_get_state: false, // sync, implemented in glue.cpp
         sane_init: false, // sync?
@@ -108,15 +124,17 @@
     // The library just starts working when we call sane_init externally.
 
     Module.postRun.push(() => {
+        // promote enums to more useful objects
         ["SANE_STATUS", "SANE_TYPE", "SANE_UNIT", "SANE_CONSTRAINT", "SANE_FRAME"].forEach(s => {
             EnumSANE.promote(Module[s]);
         });
 
+        // set test backend number of devices
         if (Module.sane.debugTestDevices) {
             let buf = Module.FS.readFile("/etc/sane.d/test.conf");
             let match = false;
             const arr = (new TextDecoder()).decode(buf).split("\n").map(l => {
-                if (l.match(/^\s*number_o_devices\s+.*$/)) {
+                if (l.match(/^\s*number_of_devices\s+.*$/)) {
                     match = true;
                     return `number_of_devices ${Module.sane.debugTestDevices}`;
                 }
@@ -129,6 +147,7 @@
             Module.FS.writeFile("/etc/sane.d/test.conf", buf);
         }
 
+        // enable debug for sane function calls
         if (Module.sane.debugFunctionCalls) {
             const wrap = (fn) => (...args) => {
                 const res = fn(...args);
@@ -143,6 +162,7 @@
             });
         }
 
+        // wrap sane functions with promises to normalize api
         if (Module.sane.promisify) {
             const wrap = (fn) => (...args) => {
                 const res = fn(...args);
@@ -153,6 +173,8 @@
             });
         }
 
+        // wrap sane functions using promise queue to prevent further calls
+        // while other async functions are still running (not supported)
         if (Module.sane.promisify && Module.sane.promisifyQueue) {
             const queue = [];
             let busy = false;

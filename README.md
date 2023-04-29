@@ -4,9 +4,9 @@ A project to bring the [SANE API](http://www.sane-project.org/intro.html) to the
 
 Currently, it only supports USB scanners and is only tested on a browser environment (WebUSB).
 
-This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://github.com/libusb/libusb/pull/1057) ([1](https://web.dev/porting-libusb-to-webusb/)/[2](https://web.dev/porting-gphoto2-to-the-web/)) with [some patching](deps/libusb.patch) to support multi-threading.
+This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://github.com/libusb/libusb/pull/1057) ([1](https://web.dev/porting-libusb-to-webusb/)/[2](https://web.dev/porting-gphoto2-to-the-web/)) with [some patching](https://github.com/goncalomb/sane-wasm/issues/1) to support multi-threading.
 
-Right now, it includes [all backends](http://www.sane-project.org/lists/sane-backends-cvs.html) that have support for at least one USB device (genesys is not included due to issues). No [external backends](http://www.sane-project.org/lists/sane-backends-external.html) are included at the moment.
+Right now, it includes [all backends](http://www.sane-project.org/lists/sane-backends-cvs.html) that have support for at least one USB device ([genesys is not included due to issues](https://github.com/goncalomb/sane-wasm/issues/3)). No [external backends](http://www.sane-project.org/lists/sane-backends-external.html) are included at the moment.
 
 ## WebScan
 
@@ -15,7 +15,7 @@ Right now, it includes [all backends](http://www.sane-project.org/lists/sane-bac
 If you are interested in seeing the compiled output of sane-wasm, check:
 
 * [webscan.goncalomb.com/sane-wasm/](https://webscan.goncalomb.com/sane-wasm/): all files
-* [webscan.goncalomb.com/sane-wasm/libsane.html](https://webscan.goncalomb.com/sane-wasm/): test page
+* [webscan.goncalomb.com/sane-wasm/libsane.html](https://webscan.goncalomb.com/sane-wasm/libsane.html): test page
 
 ## Building
 
@@ -140,4 +140,4 @@ _documentation in progress, the API may still suffer changes_
 
 ## License
 
-Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I releasing this project with dual licensing [GNU GPLv2](LICENSE.txt) + [GNU LGPLv2.1](LICENSE-LGPL.txt). IANAL, you choose.
+Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I'm releasing this project with dual licensing [GNU GPLv2](LICENSE.txt) + [GNU LGPLv2.1](LICENSE-LGPL.txt). IANAL, you choose.

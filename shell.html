@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+    SANE WebAssembly (sane-wasm)
+    Copyright (C) 2023 Gonçalo MB <me@goncalomb.com>
+    GNU GPLv2 + GNU LGPLv2.1
+-->
 <html lang="en">
     <head>
         <meta charset="utf-8">
@@ -21,6 +26,14 @@
             <p>This project (sane-wasm) is a WebAssembly port of the <a href="http://sane-project.org/">SANE API</a> for in-browser scanning (USB scanners).</p>
         </header>
         <main>
+            <ul>
+                <li><strong>This is a test page.</strong> It's not designed for final image acquisition.</li>
+                <li>This project uses some of the latest web features, a modern browser is required.</li>
+                <li>Using this page requires understanding the <a href="https://sane-project.gitlab.io/standard/api.html#code-flow">SANE Code Flow</a> and the overall SANE library.</li>
+                <li>If you reload/leave the page without clearing the scanner state (e.g. closing the page while scanning) you might need to reset the device (i.e. reconnecting).</li>
+                <li>There are some safeguards in place, but it might still be possible to lock the browser window or the scanner.</li>
+                <li>Check the console for useful information.</li>
+            </ul>
             <h2>Device Pairing (WebUSB)</h2>
             <p>
                 <button id="btn-request-device">navigator.usb.requestDevice()</button>
