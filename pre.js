@@ -81,7 +81,7 @@
         sane_get_option_descriptor: false, // sync
         sane_control_option_get_value: true, // some options are async
         sane_control_option_set_value: true, // some options are async
-        sane_control_option_set_auto: false, // suspected of possibly being async
+        sane_control_option_set_auto: true, // suspected of possibly being async
         sane_get_parameters: false, // sync?
         sane_start: false, // sync?
         sane_read: true, // async, waits for scan completion
