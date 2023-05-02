@@ -1,0 +1,29 @@
+{
+  "name": "sane-wasm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A project to bring the SANE API to the web.",
+  "main": "build/libsane.js",
+  "types": "libsane.d.ts",
+  "scripts": {
+    "clean": "./build.sh --with-docker --no-build --clean",
+    "build": "./build.sh --with-docker --clean",
+    "build-debug": "./build.sh --with-docker --debug --emrun"
+  },
+  "files": [
+    "build/",
+    "libsane.d.ts",
+    "LICENSE-LGPL.txt",
+    "LICENSE.txt"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goncalomb/sane-wasm.git"
+  },
+  "author": "Gonçalo MB <me@goncalomb.com>",
+  "license": "GPL-2.0+ OR LGPL-2.1+",
+  "bugs": {
+    "url": "https://github.com/goncalomb/sane-wasm/issues"
+  },
+  "homepage": "https://github.com/goncalomb/sane-wasm#readme"
+}
