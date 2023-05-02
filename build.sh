@@ -234,7 +234,7 @@ set -x
     "-I$SANE/include" "$SANE/backend/.libs/libsane.la" "$SANE/sanei/.libs/libsanei.la" \
     glue.cpp -o build/libsane.html "${D_O0G3[@]}" \
     --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 \
-    --preload-file="$PREFIX/etc/sane.d@/etc/sane.d" \
+    --embed-file="$PREFIX/etc/sane.d@/etc/sane.d" \
     -sEXPORTED_RUNTIME_METHODS=FS \
     -sMODULARIZE -sEXPORT_NAME=LibSANE \
     --pre-js pre.js --shell-file shell.html
