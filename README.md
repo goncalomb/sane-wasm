@@ -49,7 +49,7 @@ usage: build.sh [options]
 
 ## Using
 
-For now, this project has only been used on a browser environment, usage with Node.js or other environments is untested/unsupported. The API may still suffer changes and no `npm` package is provided at the moment.
+For now, this project has only been used on a browser environment, usage with Node.js or other environments is untested/unsupported.
 
 The recommended way to use this project is to add it as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to your application. Integrate `./build.sh` with your build process. And include the main .js file:
 
@@ -64,11 +64,9 @@ The recommended way to use this project is to add it as a [submodule](https://gi
 </script>
 ```
 
-I don't recommend minifying `libsane.js` with your application code. It may break some things.
-
 This will be improved in the future.
 
-## Exposed API (may not be final)
+## Exposed API
 
 Most of the SANE API is exposed as-is. Check the [SANE Standard](https://sane-project.gitlab.io/standard/index.html).
 
@@ -80,63 +78,9 @@ The most important difference with the underlying SANE API is that **device hand
 
 > Personally, I believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time. @goncalomb
 
-### Constants
+### Documentation
 
-_documentation in progress, the API may still suffer changes_
-
-`LibSANE.SANE_WASM_COMMIT`
-
-`LibSANE.SANE_WASM_VERSION`
-
-`LibSANE.SANE_WASM_BACKENDS`
-
-`LibSANE.SANE_CURRENT_MAJOR` (number) = SANE C macro `SANE_CURRENT_MAJOR`
-
-`LibSANE.SANE_CURRENT_MINOR` (number) = SANE C macro `SANE_CURRENT_MINOR`
-
-`LibSANE.SANE_STATUS` (object) = SANE C enum `SANE_Status`
-
-`LibSANE.SANE_TYPE` (object) = SANE C enum `SANE_Value_Type`
-
-`LibSANE.SANE_UNIT` (object) = SANE C enum `SANE_Unit`
-
-`LibSANE.SANE_CONSTRAINT` (object) = SANE C enum `SANE_Constraint_Type`
-
-`LibSANE.SANE_FRAME` (object) = SANE C enum `SANE_Frame`
-
-### Functions
-
-_documentation in progress, the API may still suffer changes_
-
-`LibSANE.sane_get_state` (extra function, not part of the SANE API)
-
-`LibSANE.sane_init`
-
-`LibSANE.sane_exit`
-
-`LibSANE.sane_get_devices`
-
-`LibSANE.sane_open`
-
-`LibSANE.sane_close`
-
-`LibSANE.sane_get_option_descriptor`
-
-`LibSANE.sane_control_option_get_value`
-
-`LibSANE.sane_control_option_set_value`
-
-`LibSANE.sane_control_option_set_auto`
-
-`LibSANE.sane_get_parameters`
-
-`LibSANE.sane_start`
-
-`LibSANE.sane_read`
-
-`LibSANE.sane_cancel`
-
-`LibSANE.sane_strstatus`
+For now, check the [libsane.d.ts](libsane.d.ts) for the API declaration.
 
 ## License
 
