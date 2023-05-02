@@ -1,7 +1,6 @@
 {
   "name": "sane-wasm",
   "version": "0.0.0",
-  "private": true,
   "description": "A project to bring the SANE API to the web.",
   "main": "build/libsane.js",
   "types": "libsane.d.ts",
