@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/goncalomb/sane-wasm/issues"
   },
-  "homepage": "https://github.com/goncalomb/sane-wasm#readme"
+  "homepage": "https://github.com/goncalomb/sane-wasm#readme",
+  "dependencies": {
+    "usb": "^2.10.0"
+  }
 }

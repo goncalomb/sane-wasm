@@ -237,7 +237,7 @@ set -x
     --embed-file="$PREFIX/etc/sane.d@/etc/sane.d" \
     -sEXPORTED_RUNTIME_METHODS=FS \
     -sMODULARIZE -sEXPORT_NAME=LibSANE \
-    --pre-js pre.js --shell-file shell.html
+    --pre-js pre.js --post-js post.js --shell-file shell.html
 set +x
 
 # clean build directory on non-debug builds

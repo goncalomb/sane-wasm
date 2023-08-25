@@ -47,3 +47,4 @@ Be careful testing new patches because `./build.sh --clean` will clean all the d
     * (HACK) implement rudimentary support for multi-threading by proxying critical calls back to the main thread, the remaining functions may also need to be proxied in the future, probably the long-term goal is just proxy all calls to a separate thread (not the main one)
 * `libusb/libusb/os/events_posix.c`:
     * (HACK) patch for basic multi-threading support (very hacky)
+    * (FIX) add Node.js support

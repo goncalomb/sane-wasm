@@ -172,10 +172,10 @@ index 325a3a1f..129da3c2 100644
      .transfer_priv_size = sizeof(val),
  };
 diff --git a/libusb/os/events_posix.c b/libusb/os/events_posix.c
-index 2ba01033..7fd39637 100644
+index 2ba01033..5e336912 100644
 --- a/libusb/os/events_posix.c
 +++ b/libusb/os/events_posix.c
-@@ -37,23 +37,60 @@
+@@ -37,23 +37,86 @@
   *
   * Therefore use a custom event system based on browser event emitters. */
  #include <emscripten.h>
@@ -195,9 +195,20 @@ index 2ba01033..7fd39637 100644
 +		emscripten_async_run_in_main_runtime_thread(EM_FUNC_SIG_VI, emscripten_sleep, 0);
 +	}
 +}
++
++EM_JS(void, em_libusb_event_target, (void), {
++	if (ENVIRONMENT_IS_NODE) {
++		if (!Module.libusbEventTarget) {
++			Module.libusbEventTarget = new EventTarget();
++		}
++		return Module.libusbEventTarget;
++	}
++	return globalThis;
++});
  
  EM_JS(void, em_libusb_notify, (void), {
- 	dispatchEvent(new Event("em-libusb"));
+-	dispatchEvent(new Event("em-libusb"));
++	em_libusb_event_target().dispatchEvent(new Event("em-libusb"));
 +	// also message all workers (threads)
 +	Object.values(PThread.pthreads).forEach(w => {
 +		// XXX: (target: "setimmediate"): VERY hacky way to prevent errors
@@ -213,32 +224,50 @@ index 2ba01033..7fd39637 100644
  EM_ASYNC_JS(int, em_libusb_wait, (int timeout), {
 -	let onEvent, timeoutId;
 +	let onEvent, onEventWorker, timeoutId, intervalId;
++	let parentPort = ENVIRONMENT_IS_WORKER && ENVIRONMENT_IS_NODE && require('node:worker_threads').parentPort;
  
  	try {
 +		intervalId = setInterval(_em_force_yield_main_thread, 50);
  		return await new Promise(resolve => {
  			onEvent = () => resolve(0);
- 			addEventListener('em-libusb', onEvent);
+-			addEventListener('em-libusb', onEvent);
 -
++			em_libusb_event_target().addEventListener('em-libusb', onEvent);
 +			// on worker also register message listener
-+			if (typeof WorkerGlobalScope !== 'undefined') {
-+				onEventWorker = e => {
-+					if (e.data.cmd == 'em-libusb') {
-+						resolve(0);
-+					}
-+				};
-+				addEventListener('message', onEventWorker);
++			if (ENVIRONMENT_IS_WORKER) {
++				if (ENVIRONMENT_IS_NODE) {
++					onEventWorker = data => {
++						if (data.cmd == 'em-libusb') {
++							resolve(0);
++						}
++					};
++					parentPort.on('message', onEventWorker);
++				} else {
++					onEventWorker = e => {
++						if (e.data.cmd == 'em-libusb') {
++							resolve(0);
++						}
++					};
++					addEventListener('message', onEventWorker);
++				}
 +			}
  			timeoutId = setTimeout(resolve, timeout, -1);
  		});
  	} finally {
- 		removeEventListener('em-libusb', onEvent);
-+		removeEventListener('message', onEventWorker);
+-		removeEventListener('em-libusb', onEvent);
++		em_libusb_event_target().removeEventListener('em-libusb', onEvent);
++		if (ENVIRONMENT_IS_WORKER) {
++			if (ENVIRONMENT_IS_NODE) {
++				parentPort.off('message', onEventWorker);
++			} else {
++				addEventListener('message', onEventWorker);
++			}
++		}
 +		clearInterval(intervalId);
  		clearTimeout(timeoutId);
  	}
  });
-@@ -268,6 +305,15 @@ int usbi_wait_for_events(struct libusb_context *ctx,
+@@ -268,6 +331,15 @@ int usbi_wait_for_events(struct libusb_context *ctx,
  		int timeout = until_time - emscripten_get_now();
  		if (timeout <= 0) break;
  		int result = em_libusb_wait(timeout);
