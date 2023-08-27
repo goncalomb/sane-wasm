@@ -5,6 +5,7 @@
   "main": "build/libsane.js",
   "types": "libsane.d.ts",
   "scripts": {
+    "test": "jest",
     "clean": "./build.sh --with-docker --no-build --clean",
     "build": "./build.sh --with-docker --clean",
     "build-debug": "./build.sh --with-docker --debug --emrun"
@@ -25,7 +26,16 @@
     "url": "https://github.com/goncalomb/sane-wasm/issues"
   },
   "homepage": "https://github.com/goncalomb/sane-wasm#readme",
+  "jest": {
+    "setupFilesAfterEnv": [
+      "jest-extended/all"
+    ]
+  },
   "dependencies": {
     "usb": "^2.10.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.4",
+    "jest-extended": "^4.0.1"
   }
 }
