@@ -2,7 +2,7 @@
   "name": "sane-wasm",
   "version": "0.1.1",
   "description": "A project to bring the SANE API to the web.",
-  "main": "build/libsane.js",
+  "main": "lib/index.js",
   "types": "libsane.d.ts",
   "scripts": {
     "test": "jest",
@@ -11,6 +11,7 @@
     "build-debug": "./build.sh --with-docker --debug --emrun"
   },
   "files": [
+    "lib/",
     "build/",
     "libsane.d.ts",
     "LICENSE-LGPL.txt",
