@@ -1,8 +1,8 @@
 # SANE WebAssembly (sane-wasm)
 
-A project to bring the [SANE API](http://www.sane-project.org/intro.html) to the web.
+A project to bring the [SANE API](http://www.sane-project.org/intro.html) to Node.js and the Web using WebAssembly.
 
-Currently, it only supports USB scanners and is only tested on a browser environment (WebUSB).
+It supports USB scanners on browser environments through the [WebUSB API](https://developer.mozilla.org/en-US/docs/Web/API/WebUSB_API) and on Node.js using [node-usb](https://github.com/node-usb/node-usb).
 
 This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's [bridge from libusb to WebUSB](https://github.com/libusb/libusb/pull/1057) ([1](https://web.dev/porting-libusb-to-webusb/)/[2](https://web.dev/porting-gphoto2-to-the-web/)) with [some patching](https://github.com/goncalomb/sane-wasm/issues/1) to support multi-threading.
 
@@ -10,12 +10,62 @@ Right now, it includes [all backends](http://www.sane-project.org/lists/sane-bac
 
 ## WebScan
 
-**Check [webscan.goncalomb.com](https://webscan.goncalomb.com/) for a demo of sane-wasm.** This is a React application that uses sane-wasm for document/image scanning directly in the browser. Exposes all scanning options to the user for full control.
+**Check [webscan.goncalomb.com](https://webscan.goncalomb.com/) for a demo of sane-wasm.** This is a React application that uses sane-wasm for document/image scanning directly in the browser. It exposes all scanning options to the user for full control.
 
-If you are interested in seeing the compiled output of sane-wasm, check:
+## Usage
 
-* [webscan.goncalomb.com/sane-wasm/](https://webscan.goncalomb.com/sane-wasm/): all files
-* [webscan.goncalomb.com/sane-wasm/libsane.html](https://webscan.goncalomb.com/sane-wasm/libsane.html): test page
+The pre-compiled WebAssembly package for sane-wasm is published on NPM:
+
+https://www.npmjs.com/package/sane-wasm?activeTab=code
+
+### For Web Environments (e.g. Webpack)
+
+```
+npm install -D sane-wasm
+```
+
+The main .js will not be bundled with your application. A loader ([lib/loader.js](lib/loader.js)) is provided to automatically load the .js/.wasm files from a CDN ([jsdelivr.com](https://www.jsdelivr.com/)). You can configure the loader to serve the files from your server if you want.
+
+See [examples/webpack/](examples/webpack/) for a working example.
+
+### For Node.js
+
+```
+npm install sane-wasm usb
+```
+
+The usb package ([node-usb](https://github.com/node-usb/node-usb)) is required to provide USB functionality.
+
+See [examples/node/](examples/node/) for a working example.
+
+### As Git Submodule (not recommended) / Custom Build
+
+As an alternative, you can add sane-wasm as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to your application and integrate `./build.sh` with your build process. This is not recommended as it relies on some magical/dubious code on `./build.sh` to make the build work.
+
+You can also just build sane-wasm independently and use the build artifacts...
+
+```
+<script src="build/libsane.js"></script>
+<script>
+    window.LibSANE().then(lib => {
+        // your code
+        console.log(lib.sane_init());
+    });
+</script>
+```
+
+```
+const LibSANE = require('./sane-wasm');
+LibSANE().then(lib => {
+    console.log(lib.sane_init());
+});
+```
+
+```
+import LibSANE from './sane-wasm';
+const lib = await LibSANE();
+console.log(lib.sane_init());
+```
 
 ## Building
 
@@ -46,25 +96,6 @@ usage: build.sh [options]
   --emrun        run emrun development server
   --shell        run debug shell (depends on --with-docker)
 ```
-
-## Using
-
-For now, this project has only been used on a browser environment, usage with Node.js or other environments is untested/unsupported.
-
-The recommended way to use this project is to add it as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to your application. Integrate `./build.sh` with your build process. And include the main .js file:
-
-```
-<script src="build/libsane.js"></script>
-<script>
-    window.LibSANE().then(LibSANE => {
-        window.LibSANE = LibSANE;
-        // your code
-        console.log(LibSANE.sane_init());
-    });
-</script>
-```
-
-This will be improved in the future.
 
 ## Exposed API
 
