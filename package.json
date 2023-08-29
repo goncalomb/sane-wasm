@@ -32,8 +32,13 @@
       "jest-extended/all"
     ]
   },
-  "dependencies": {
+  "peerDependencies": {
     "usb": "^2.10.0"
+  },
+  "peerDependenciesMeta": {
+    "usb": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "jest": "^29.6.4",
