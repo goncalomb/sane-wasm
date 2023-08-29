@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # SANE WebAssembly (sane-wasm)
 # Copyright (C) 2023 Gonçalo MB <me@goncalomb.com>
