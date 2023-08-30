@@ -1,4 +1,4 @@
-export enum SANEStatus {
+declare enum SANEStatus {
     GOOD = 0,
     UNSUPPORTED,
     CANCELLED,
@@ -13,7 +13,7 @@ export enum SANEStatus {
     ACCESS_DENIED,
 }
 
-export enum SANEValueType {
+declare enum SANEValueType {
     BOOL = 0,
     INT,
     FIXED,
@@ -22,7 +22,7 @@ export enum SANEValueType {
     GROUP,
 }
 
-export enum SANEUnit {
+declare enum SANEUnit {
     NONE = 0,
     PIXEL,
     BIT,
@@ -32,14 +32,14 @@ export enum SANEUnit {
     MICROSECOND,
 }
 
-export enum SANEConstraintType {
+declare enum SANEConstraintType {
     NONE = 0,
     RANGE,
     WORD_LIST,
     STRING_LIST,
 }
 
-export enum SANEFrame {
+declare enum SANEFrame {
     GRAY = 0,
     RGB,
     RED,
@@ -151,6 +151,9 @@ export interface LibSANE {
 
 export type LibSANEFactory = (option?: {
     sane?: {
+        loaderURL: string;
+        loaderPrefetchToBlob: boolean;
+        loaderRemoveGlobal: boolean;
         debugSANE?: boolean;
         debugUSB?: boolean;
         debugFunctionCalls?: boolean;
@@ -161,3 +164,6 @@ export type LibSANEFactory = (option?: {
 } & {
     [k: string]: any
 }) => Promise<LibSANE>
+
+declare const LibSANE: LibSANEFactory;
+export default LibSANE;
