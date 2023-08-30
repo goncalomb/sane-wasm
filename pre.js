@@ -45,7 +45,8 @@
             obj.__proto__ = this.prototype;
             obj[this.reverseObject] = {};
             Object.keys(obj).forEach(k => {
-                obj[this.reverseObject][obj[k]] = k;
+                obj[obj[k]] = k; // reverse mapping à la typescript
+                obj[this.reverseObject][obj[k]] = k; // XXX: old reverse mapping, consider removing
             });
         }
 

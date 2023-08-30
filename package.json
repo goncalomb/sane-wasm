@@ -2,15 +2,21 @@
   "name": "sane-wasm",
   "version": "0.1.2",
   "description": "A project to bring the SANE API to the web.",
-  "main": "lib/index.js",
-  "types": "libsane.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest",
-    "clean": "./build.sh --with-docker --no-build --clean",
-    "build": "./build.sh --with-docker --clean",
-    "build-debug": "./build.sh --with-docker --debug --emrun"
+    "clean": "npm run clean:tsc && npm run clean:sane",
+    "clean:tsc": "rm -rf dist/",
+    "clean:sane": "./build.sh --no-build --clean",
+    "prebuild": "rm -rf dist/ build/",
+    "build": "npm run build:tsc && npm run build:sane",
+    "build:tsc": "tsc",
+    "build:sane": "./build.sh --with-docker --clean",
+    "debug:sane": "./build.sh --with-docker --debug --emrun"
   },
   "files": [
+    "dist/",
     "lib/",
     "build/",
     "libsane.d.ts",
@@ -42,6 +48,7 @@
   },
   "devDependencies": {
     "jest": "^29.6.4",
-    "jest-extended": "^4.0.1"
+    "jest-extended": "^4.0.1",
+    "typescript": "^5.2.2"
   }
 }

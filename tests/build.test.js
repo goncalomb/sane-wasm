@@ -1,8 +1,8 @@
 // const { webusb } = require('usb');
-const sane = require('..');
+const { libsane } = require('..');
 const { execSync } = require('child_process');
 
-const lib = sane();
+const lib = libsane();
 
 test('version', async () => {
     const l = await lib;

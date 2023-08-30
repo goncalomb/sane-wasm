@@ -1,7 +1,7 @@
 // const { webusb } = require('usb');
-const sane = require('..');
+const { libsane } = require('..');
 
-const lib = sane({
+const lib = libsane({
     sane: {
         debugTestDevices: 7,
     },

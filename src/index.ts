@@ -1,4 +1,4 @@
-declare enum SANEStatus {
+export enum SANEStatus {
     GOOD = 0,
     UNSUPPORTED,
     CANCELLED,
@@ -13,7 +13,7 @@ declare enum SANEStatus {
     ACCESS_DENIED,
 }
 
-declare enum SANEValueType {
+export enum SANEValueType {
     BOOL = 0,
     INT,
     FIXED,
@@ -22,7 +22,7 @@ declare enum SANEValueType {
     GROUP,
 }
 
-declare enum SANEUnit {
+export enum SANEUnit {
     NONE = 0,
     PIXEL,
     BIT,
@@ -32,14 +32,14 @@ declare enum SANEUnit {
     MICROSECOND,
 }
 
-declare enum SANEConstraintType {
+export enum SANEConstraintType {
     NONE = 0,
     RANGE,
     WORD_LIST,
     STRING_LIST,
 }
 
-declare enum SANEFrame {
+export enum SANEFrame {
     GRAY = 0,
     RGB,
     RED,
@@ -115,6 +115,9 @@ export type SANEParameters = {
 }
 
 type SANEEnum<E, TE> = E & {
+    /**
+     * @deprecated Use reverse map already built into TS enums.
+     */
     asString: (value: TE) => string;
 }
 
@@ -165,5 +168,13 @@ export type LibSANEFactory = (option?: {
     [k: string]: any
 }) => Promise<LibSANE>
 
-declare const LibSANE: LibSANEFactory;
-export default LibSANE;
+/**
+ * Main LibSANE factory.
+ */
+export const libsane = require('../lib') as LibSANEFactory;
+
+/**
+ * @deprecated The default export may be removed in the future.
+ * Use the 'libsane' named export.
+ */
+export default libsane;

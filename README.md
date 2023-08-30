@@ -55,19 +55,21 @@ You can also just build sane-wasm independently and use the build artifacts...
 ```
 
 ```
-const LibSANE = require('./sane-wasm');
-LibSANE().then(lib => {
+const { libsane } = require('./sane-wasm');
+libsane().then(lib => {
     console.log(lib.sane_init());
 });
 ```
 
 ```
-import LibSANE from './sane-wasm';
-const lib = await LibSANE();
+import { libsane } from './sane-wasm';
+const lib = await libsane();
 console.log(lib.sane_init());
 ```
 
 ## Building
+
+### SANE Only
 
 Building requires [emscripten](https://github.com/emscripten-core/emscripten) and all the required tools to build the dependencies.
 
@@ -83,7 +85,7 @@ Start the test server with:
 
 Check the test page at: http://localhost:6931/libsane.html.
 
-### build.sh
+#### build.sh
 
 The `./build.sh` script has other options for debugging:
 
@@ -96,6 +98,10 @@ usage: build.sh [options]
   --emrun        run emrun development server
   --shell        run debug shell (depends on --with-docker)
 ```
+
+### Full Build (SANE + TypeScript)
+
+To do a full build use `npm run build`.
 
 ## Exposed API
 
@@ -111,7 +117,7 @@ The most important difference with the underlying SANE API is that **device hand
 
 ### Documentation
 
-For now, check the [libsane.d.ts](libsane.d.ts) for the API declaration.
+For now, check the [src/index.ts](src/index.ts) for the API declaration.
 
 ## License
 
