@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "sane-wasm": "^0.1.2",
+    "sane-wasm": "^0.2.0",
     "usb": "^2.10.0"
   }
 }

@@ -1,6 +1,6 @@
-import LibSANE from 'sane-wasm';
+import { libsane } from 'sane-wasm';
 
-const lib = await LibSANE({
+const lib = await libsane({
     sane: {
         debugTestDevices: 1,
     }

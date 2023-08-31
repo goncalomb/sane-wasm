@@ -1,4 +1,4 @@
-const LibSANE = require('sane-wasm');
+const { libsane } = require('sane-wasm');
 
 class TextBox {
     constructor() {
@@ -20,7 +20,7 @@ class TextBox {
 const tb = new TextBox();
 tb.append('Loading...');
 
-LibSANE({
+libsane({
     sane: {
         debugFunctionCalls: true,
         debugTestDevices: 1,
