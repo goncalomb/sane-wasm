@@ -1,6 +1,6 @@
 {
   "name": "sane-wasm",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A project to bring the SANE API to the web.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
