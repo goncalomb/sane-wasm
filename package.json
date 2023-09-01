@@ -6,12 +6,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest",
-    "clean": "npm run clean:tsc && npm run clean:sane",
-    "clean:tsc": "rm -rf dist/",
+    "clean": "npm run clean:ts && npm run clean:sane",
+    "clean:ts": "rm -rf dist/ docs/",
     "clean:sane": "./build.sh --no-build --clean",
-    "prebuild": "rm -rf dist/ build/",
-    "build": "npm run build:tsc && npm run build:sane",
-    "build:tsc": "tsc",
+    "prebuild": "rm -rf dist/ docs/ build/",
+    "build": "npm run build:ts && npm run build:sane",
+    "build:ts": "tsc && typedoc",
     "build:sane": "./build.sh --with-docker --clean",
     "debug:sane": "./build.sh --with-docker --debug --emrun"
   },
@@ -49,6 +49,7 @@
   "devDependencies": {
     "jest": "^29.6.4",
     "jest-extended": "^4.0.1",
+    "typedoc": "^0.25.0",
     "typescript": "^5.2.2"
   }
 }

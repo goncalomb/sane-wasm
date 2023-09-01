@@ -1,0 +1,5 @@
+{
+  /* https://typedoc.org/options/configuration/ */
+  "entryPoints": ["src/index.ts"],
+  "out": "docs"
+}
