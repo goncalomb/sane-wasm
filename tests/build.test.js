@@ -18,3 +18,9 @@ test('46 backends', async () => {
     const l = await lib;
     expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(46);
 });
+
+test('sane version 1.0', async () => {
+    const l = await lib;
+    expect(l.SANE_CURRENT_MAJOR).toBe(1);
+    expect(l.SANE_CURRENT_MINOR).toBe(0);
+});
