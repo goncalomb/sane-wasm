@@ -72,16 +72,16 @@ export enum SANEFrame {
  */
 export type SANEState = {
     /**
-     * Is the library initialized with {@link LibSANE.sane_init()}?
+     * Is the library initialized with {@link LibSANE.sane_init}?
      */
     initialized: boolean;
     /**
-     * Version code provided by the last {@link LibSANE.sane_init()} call.
+     * Version code provided by the last {@link LibSANE.sane_init} call.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#version-control}
      */
     version_code: number;
     /**
-     * Version code (decoded) provided by the last {@link LibSANE.sane_init()} call.
+     * Version code (decoded) provided by the last {@link LibSANE.sane_init} call.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#version-control}
      */
     version: {
@@ -90,7 +90,7 @@ export type SANEState = {
         build: number;
     },
     /**
-     * Is a device open with {@link LibSANE.sane_open()}?
+     * Is a device open with {@link LibSANE.sane_open}?
      */
     open: boolean;
 }
@@ -287,7 +287,7 @@ export interface LibSANE {
      * Equivalent to the SANE API C function `sane_init`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-init}
      */
-    sane_init: () => { status: SANEStatus; version_code: number };
+    sane_init: () => { status: SANEStatus.GOOD; version_code: number } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; version_code: null };
 
     /**
      * Equivalent to the SANE API C function `sane_exit`.
@@ -299,7 +299,7 @@ export interface LibSANE {
      * Equivalent to the SANE API C function `sane_get_devices`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-get-devices}
      */
-    sane_get_devices: () => Promise<{ status: SANEStatus; devices: SANEDevice[] }>;
+    sane_get_devices: () => Promise<{ status: SANEStatus.GOOD; devices: SANEDevice[] } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; devices: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_open`.
@@ -315,6 +315,10 @@ export interface LibSANE {
 
     /**
      * Equivalent to the SANE API C function `sane_get_option_descriptor`.
+     *
+     * The result `option_descriptor` can be null even with
+     * `status = SANEStatus.GOOD`, it signals invalid option index.
+     *
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-get-option-descriptor}
      */
     sane_get_option_descriptor: (option: number) => { status: SANEStatus; option_descriptor: SANEOptionDescriptor | null };
@@ -326,7 +330,7 @@ export interface LibSANE {
      *
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-control-option}
      */
-    sane_control_option_get_value: (option: number) => Promise<{ status: SANEStatus; value: any }>;
+    sane_control_option_get_value: (option: number) => Promise<{ status: SANEStatus.GOOD; value: any } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; value: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_control_option`.
@@ -335,7 +339,7 @@ export interface LibSANE {
      *
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-control-option}
      */
-    sane_control_option_set_value: (option: number, value: any) => Promise<{ status: SANEStatus; info: SANEInfo }>;
+    sane_control_option_set_value: (option: number, value: any) => Promise<{ status: SANEStatus.GOOD; info: SANEInfo } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; info: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_control_option`.
@@ -344,13 +348,13 @@ export interface LibSANE {
      *
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-control-option}
      */
-    sane_control_option_set_auto: (option: number) => Promise<{ status: SANEStatus; info: SANEInfo }>;
+    sane_control_option_set_auto: (option: number) => Promise<{ status: SANEStatus.GOOD; info: SANEInfo } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; info: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_get_parameters`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-get-parameters}
      */
-    sane_get_parameters: () => { status: SANEStatus; parameters: SANEParameters };
+    sane_get_parameters: () => { status: SANEStatus.GOOD; parameters: SANEParameters } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; parameters: null };
 
     /**
      * Equivalent to the SANE API C function `sane_start`.
@@ -362,7 +366,7 @@ export interface LibSANE {
      * Equivalent to the SANE API C function `sane_read`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-read}
      */
-    sane_read: () => Promise<{ status: SANEStatus; data: Uint8Array }>;
+    sane_read: () => Promise<{ status: SANEStatus.GOOD; data: Uint8Array } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; data: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_cancel`.
@@ -458,7 +462,7 @@ export type LibSANEOptions = {
 /**
  * The factory that initializes the core SANE Emscripten module.
  */
-export type LibSANEFactory = (option?: {
+export type LibSANEFactory = (options?: {
     /**
      * Emscripten module options specific to sane-wasm.
      */

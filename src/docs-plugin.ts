@@ -10,7 +10,7 @@ export function load(app: Application) {
     // remove site menu on index.html
     app.renderer.hooks.on('head.end', (context: DefaultThemeRenderContext) => {
         if (context.page.url === 'index.html') {
-            return JSX.createElement('style', null, '.site-menu, .tsd-filter-visibility { display: none; }');
+            return JSX.createElement('style', null, '.site-menu, .tsd-page-title, .tsd-filter-visibility { display: none; }');
         }
         return JSX.createElement(JSX.Fragment, null);
     });

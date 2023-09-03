@@ -506,6 +506,8 @@ namespace sane {
 
         SANE_Int len = 0;
         SANE_Status status = ::sane_read(handle, buffer, BUFFER_LEN, &len);
+        RETURN_IF_ERROR_KEY(status, "data");
+
         val data = val(typed_memory_view(len, buffer));
         return build_response(status, "data", data);
     }
