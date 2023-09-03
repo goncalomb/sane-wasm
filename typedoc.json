@@ -1,5 +1,12 @@
 {
   /* https://typedoc.org/options/configuration/ */
   "entryPoints": ["src/index.ts"],
-  "out": "docs"
+  "out": "docs",
+  "navigationLinks": {
+    "API": "https://goncalomb.github.io/sane-wasm/modules.html",
+    "GitHub": "https://github.com/goncalomb/sane-wasm",
+  },
+  "plugin": [
+    "./dist/docs-plugin.js"
+  ]
 }

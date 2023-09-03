@@ -181,8 +181,9 @@ export type SANEParameters = {
 
 /**
  * @private Type for enums provided by the core SANE Emscripten module.
+ * @deprecated
  */
-type SANEEnum<E, TE> = E & {
+export type SANEEnum<E, TE> = E & {
     /**
      * @deprecated Use reverse map already built into TS enums.
      */

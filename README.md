@@ -24,9 +24,9 @@ https://www.npmjs.com/package/sane-wasm?activeTab=code
 npm install -D sane-wasm
 ```
 
-The main .js will not be bundled with your application. A loader ([lib/loader.js](lib/loader.js)) is provided to automatically load the .js/.wasm files from a CDN ([jsdelivr.com](https://www.jsdelivr.com/)). You can configure the loader to serve the files from your server if you want.
+The main .js will not be bundled with your application. A loader ([lib/loader.js](https://github.com/goncalomb/sane-wasm/blob/master/lib/loader.js)) is provided to automatically load the .js/.wasm files from a CDN ([jsdelivr.com](https://www.jsdelivr.com/)). You can configure the loader to serve the files from your server if you want.
 
-See [examples/webpack/](examples/webpack/) for a working example.
+See [examples/webpack/](https://github.com/goncalomb/sane-wasm/tree/master/examples/webpack) for a working example.
 
 ### For Node.js
 
@@ -36,7 +36,7 @@ npm install sane-wasm usb
 
 The usb package ([node-usb](https://github.com/node-usb/node-usb)) is required to provide USB functionality.
 
-See [examples/node/](examples/node/) for a working example.
+See [examples/node/](https://github.com/goncalomb/sane-wasm/tree/master/examples/node) for a working example.
 
 ### As Git Submodule (not recommended) / Custom Build
 
@@ -103,7 +103,7 @@ usage: build.sh [options]
 
 To do a full build use `npm run build`.
 
-## Exposed API
+## API
 
 Most of the SANE API is exposed as-is. Check the [SANE Standard](https://sane-project.gitlab.io/standard/index.html).
 
@@ -113,12 +113,12 @@ Some safeguards are in place to avoid API misuse and prevent memory leaks. It's 
 
 The most important difference with the underlying SANE API is that **device handles are not exposed**. This means that `sane_open()` does not return a device handle. A single handle is managed by the internal code. This effectively means that **only one device can be accessed at a time**. This was a design decision made to simplify the API and prevent other issues.
 
-> Personally, I believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time. @goncalomb
+> Personally, I believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time. -goncalomb
 
 ### Documentation
 
-For now, check the [src/index.ts](src/index.ts) for the API declaration.
+Check API documentation at: [goncalomb.github.io/sane-wasm/modules.html](https://goncalomb.github.io/sane-wasm/modules.html).
 
 ## License
 
-Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I'm releasing this project with dual licensing [GNU GPLv2](LICENSE.txt) + [GNU LGPLv2.1](LICENSE-LGPL.txt). IANAL, you choose.
+Because of the weird state of SANE's licensing (GPL + linking exception, on some backends), see [backends/LICENSE](https://gitlab.com/sane-project/backends/-/blob/master/LICENSE). I'm releasing this project with dual licensing [GNU GPLv2](https://github.com/goncalomb/sane-wasm/blob/master/LICENSE.txt) + [GNU LGPLv2.1](https://github.com/goncalomb/sane-wasm/blob/master/LICENSE-LGPL.txt). IANAL, you choose.

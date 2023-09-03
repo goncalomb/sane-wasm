@@ -12,6 +12,7 @@
     "prebuild": "rm -rf dist/ docs/ build/",
     "build": "npm run build:ts && npm run build:sane",
     "build:ts": "tsc && typedoc",
+    "postbfuild:ts": "rm -rf dist/docs-plugin.*",
     "build:sane": "./build.sh --with-docker --clean",
     "debug:sane": "./build.sh --with-docker --debug --emrun"
   },
