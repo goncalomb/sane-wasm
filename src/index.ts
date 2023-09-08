@@ -483,3 +483,5 @@ export const libsane = require('../lib') as LibSANEFactory;
  * Use the 'libsane' named export.
  */
 export default libsane;
+
+export * from './readers';
