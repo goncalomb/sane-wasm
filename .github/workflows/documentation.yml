@@ -2,7 +2,7 @@ name: Documentation on GitHub Pages
 
 on:
   push:
-    branches: ["master"]
+    tags: ["v*"]
 
 permissions:
   contents: read
