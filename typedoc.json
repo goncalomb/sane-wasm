@@ -3,7 +3,7 @@
   "entryPoints": ["src/index.ts"],
   "out": "docs",
   "navigationLinks": {
-    "API": "https://goncalomb.github.io/sane-wasm/modules.html",
+    "API": "/modules.html",
     "GitHub": "https://github.com/goncalomb/sane-wasm",
   },
   "includeVersion": true,
