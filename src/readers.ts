@@ -1,16 +1,15 @@
 import { LibSANE, SANEFrame, SANEParameters, SANEStatus } from ".";
 
-interface EventMap {
-    [k: string]: any[]
-}
-
-abstract class EventBaseClass<T extends EventMap = EventMap> {
+abstract class EventBaseClass<T extends Record<keyof T, any[]>> {
 
     private _firing = false;
     private _listeners: {
         [K in keyof T]?: ((...args: T[K]) => void)[];
     } = {};
 
+    /**
+     * Add event listener.
+     */
     on<K extends keyof T>(type: K, listener: (...args: T[K]) => void) {
         if (!this._listeners[type]) {
             this._listeners[type] = [];
@@ -18,6 +17,9 @@ abstract class EventBaseClass<T extends EventMap = EventMap> {
         this._listeners[type]?.push(listener);
     }
 
+    /**
+     * Fire event.
+     */
     protected fire<K extends keyof T>(type: K, ...args: T[K]): Promise<null> | null {
         // if already firing an event, queue for later
         if (this._firing) {
@@ -35,11 +37,20 @@ abstract class EventBaseClass<T extends EventMap = EventMap> {
 }
 
 /**
- * @private Events types for {@link ScanImageReader}.
+ * @private Events types for {@link ScanDataReader}.
  */
-export interface ScanDataReaderEventMap extends EventMap {
+export interface ScanDataReaderEventMap extends Record<string, any[]> {
+    /**
+     * Scanning stop event.
+     */
     start: [parameters: SANEParameters];
+    /**
+     * Scanning start event.
+     */
     stop: [parameters: SANEParameters, error: Error | null];
+    /**
+     * Raw image data event.
+     */
     data: [parameters: SANEParameters, data: Uint8Array];
 }
 
@@ -48,6 +59,13 @@ export interface ScanDataReaderEventMap extends EventMap {
  *
  * Use {@link ScanDataReader.on} to listen to events, available event types
  * are declared on {@link ScanDataReaderEventMap}.
+ *
+ * A device should already be open with sane_open(), the reader will call
+ * sane_start() do the scanning and call sane_stop().
+ *
+ * Other SANE functions cannot be used while scanning.
+ *
+ * Scan readers are single use.
  *
  * {@link https://sane-project.gitlab.io/standard/1.06/api.html#code-flow}
  */
@@ -68,6 +86,17 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
                     if (this._killed) {
                         await this._lib.sane_cancel(); // ignore status
                     }
+
+                    // reads are non-blocking because of how emscripten works
+                    // this causes sane_read() to immediately return with
+                    // 0 bytes of data, this goes against the SANE spec,
+                    // blocking I/O by default
+                    // the only option right now is to poll the read using
+                    // setTimeout(), this is not ideal
+                    // currently even emscripten's asyncify does not help here,
+                    // but in the future it might help support blocking I/O
+                    // XXX: are we in the future now? can we improve this
+                    // https://github.com/emscripten-core/emscripten/issues/13214
 
                     const { status, data } = await this._lib.sane_read(); // non-blocking
 
@@ -101,18 +130,19 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
 
                     } else {
                         // TODO: handle document feeder / multi-page scans
-                        this._killed = new Error(/* TODO */);
+                        this._killed = new Error(`Status ${SANEStatus[status]} during sane_read().`);
 
                     }
 
                     setTimeout(read, data && data.length > 0 ? 10 : 200);
                 } catch (e) {
+                    const ee = e instanceof Error ? e : new Error("Unknown error while scanning.");
                     if (this._killed) {
                         // already killed, but sane_read is still going? die
-                        reject(e instanceof Error ? e : new Error(/* TODO */))
+                        reject(ee)
                         return;
                     }
-                    this._killed = e instanceof Error ? e : new Error(/* TODO */);
+                    this._killed = ee;
                     setTimeout(read, 200);
                 }
             };
@@ -120,13 +150,16 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
         });
     }
 
+    /**
+     * Start scanning operation.
+     */
     start() {
         if (this._used) {
             // readers are single use
             return {
                 status: SANEStatus.INVAL as SANEStatus.INVAL, // force return type coalesce
                 parameters: null,
-                promise: Promise.reject<void>(new Error(/* TODO */)),
+                promise: Promise.reject<void>(new Error("Scan readers cannot be reused.")),
             };
         } else {
             const { status } = this._lib.sane_start();
@@ -134,7 +167,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
                 return {
                     status,
                     parameters: null,
-                    promise: Promise.reject<void>(new Error(/* TODO */)),
+                    promise: Promise.reject<void>(new Error(`Status ${SANEStatus[status]} during sane_start().`)),
                 };
             }
             this._used = true;
@@ -146,7 +179,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
 
         const { status, parameters } = this._lib.sane_get_parameters();
         if (status !== SANEStatus.GOOD) {
-            this._killed = new Error(/* TODO */);
+            this._killed = new Error(`Status ${SANEStatus[status]} during sane_get_parameters().`);
             return {
                 status, parameters,
                 promise: this._readPromise(parameters),
@@ -156,7 +189,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
         try {
             this.fire('start', parameters);
         } catch (e) {
-            this._killed = e instanceof Error ? e : new Error();
+            this._killed = e instanceof Error ? e : new Error("Unknown error while starting the scan.");
         }
 
         return {
@@ -167,6 +200,9 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
         };
     }
 
+    /**
+     * Cancel scanning operation.
+     */
     cancel() {
         if (this._used && !this._killed) {
             this._killed = true;
@@ -178,17 +214,32 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
  * @private Events types for {@link ScanImageReader}.
  */
 export interface ScanImageReaderEventMap extends ScanDataReaderEventMap {
+    /**
+     * Image line event, one or more full lines of RGBA data.
+     */
     line: [parameters: SANEParameters, data: Uint8ClampedArray, line: number];
+    /**
+     * Full image event (end of scan), RGBA data.
+     */
     image: [parameters: SANEParameters, data: Uint8ClampedArray];
 }
 
 /**
  * Image reader that automatically generates RGBA data while reading from
  * SANE's API using {@link ScanDataReader}. It supports the most common scan
- * modes and image formats, but more can be added in the future.
+ * modes and image formats. More formats can be added in the future.
  *
  * Use {@link ScanImageReader.on} to listen to events, available event types
  * are declared on {@link ScanImageReaderEventMap}.
+ *
+ * A device should already be open with sane_open(), the reader will call
+ * sane_start() do the scanning and call sane_stop().
+ *
+ * Other SANE functions cannot be used while scanning.
+ *
+ * Scan readers are single use.
+ *
+ * {@link https://sane-project.gitlab.io/standard/1.06/api.html#code-flow}
  */
 export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReaderEventMap> extends ScanDataReader<T> {
 
@@ -205,24 +256,24 @@ export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReader
 
     private _onStart(parameters: SANEParameters) {
         if (parameters.format !== SANEFrame.GRAY && parameters.format !== SANEFrame.RGB) {
-            throw new Error(`Invalid format (${JSON.stringify(parameters)})`);
+            throw new Error(`Invalid format (${JSON.stringify(parameters)}).`);
         }
         if (parameters.depth !== 1 && parameters.depth !== 8) {
-            throw new Error(`Invalid bit depth (${JSON.stringify(parameters)})`);
+            throw new Error(`Invalid bit depth (${JSON.stringify(parameters)}).`);
         }
         if (!parameters.last_frame) {
-            throw new Error(`Invalid scanner (3-pass) (${JSON.stringify(parameters)})`);
+            throw new Error(`Invalid scanner (3-pass) (${JSON.stringify(parameters)}).`);
         }
         if (parameters.lines < 0) {
-            throw new Error(`Invalid scanner (hand-scanner) (${JSON.stringify(parameters)})`);
+            throw new Error(`Invalid scanner (hand-scanner) (${JSON.stringify(parameters)}).`);
         }
         if (parameters.bytes_per_line <= 0 || parameters.pixels_per_line <= 0 || parameters.lines <= 0) {
-            throw new Error(`Unexpected image size (${JSON.stringify(parameters)})`);
+            throw new Error(`Unexpected image size (${JSON.stringify(parameters)}).`);
         }
         const channels = parameters.format === SANEFrame.GRAY ? 1 : 3;
         const bits = parameters.pixels_per_line * parameters.depth * channels;
         if (parameters.bytes_per_line * 8 < bits) {
-            throw new Error(`Unexpected byte count (${JSON.stringify(parameters)})`);
+            throw new Error(`Unexpected byte count (${JSON.stringify(parameters)}).`);
         }
         // what do we support then?
         // we support GRAY and RGB single-pass, 1 and 8-bit, known height
