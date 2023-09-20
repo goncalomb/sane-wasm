@@ -14,6 +14,21 @@
                 max-width: 950px;
                 margin: 0 auto;
             }
+            table#options {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            table#options tr td {
+                padding: 2px;
+            }
+            table#options tr:not(:last-child) td {
+                border-bottom: 1px solid #555;
+            }
+            table#options tr td:last-child {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 250px;
+            }
             canvas {
                 border: 2px solid #555;
                 margin-bottom: 25px;
@@ -262,16 +277,22 @@
                         }
                     }
                     const options = document.querySelector("#options");
+                    options.style.display = null;
                     options.innerHTML = "";
                     options.append(tree(option_descriptors.map((opt, n) => (
-                        ["div", null, [
-                            ["p", null, [
-                                `${n}: ${opt.title} [name=${opt.name}]`, ["br"],
-                                ["small", null, opt.desc], ["br"],
-                                ["small", null, `[type=${LibSANE.SANE_TYPE.asString(opt.type)}] [unit=${LibSANE.SANE_UNIT.asString(opt.unit)}] [size=${opt.size}] [cap=${JSON.stringify(opt.cap)}]`], ["br"],
-                                ["small", null, `[constraint_type=${LibSANE.SANE_CONSTRAINT.asString(opt.constraint_type)}] [constraint=${JSON.stringify(opt.constraint)}]`],
+                        ["tr", null, [
+                            ["td", null, `${n}`],
+                            ["td", null, [
+                                ["strong", null, `${opt.title}`],
+                                ` [name=${opt.name}] [type=${LibSANE.SANE_TYPE.asString(opt.type)}] [unit=${LibSANE.SANE_UNIT.asString(opt.unit)}] [size=${opt.size}]`, ["br"],
+                                ["abbr", { title: [
+                                    `cap=${JSON.stringify(opt.cap, null, 2)}`,
+                                    `constraint_type=${LibSANE.SANE_CONSTRAINT.asString(opt.constraint_type)}`,
+                                    `constraint=${JSON.stringify(opt.constraint, null, 2)}`,
+                                ].join("\n") }, "[cap=...] [constraint_type=...] [constraint=...]"], ["br"],
+                                ["small", null, opt.desc],
                             ]],
-                            ["div", { id: `option-${n}` }]
+                            ["td", { id: `option-${n}` }]
                         ]]
                     ))));
                     let n = 0;
@@ -333,7 +354,7 @@
                                 ["button", { onclick: e => callSANE("sane_close") }, "LibSANE.sane_close()"], " ",
                             ]],
                             ["h3", null, "Options"],
-                            ["div", { id: "options" }],
+                            ["table", { id: "options", style: "display: none;" }],
                             ["h3", null, "Scan"],
                             ["p", null, [
                                 ["button", { onclick: e => callSANE("sane_get_parameters") }, "LibSANE.sane_get_parameters()"], " ",
