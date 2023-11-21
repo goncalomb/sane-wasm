@@ -1,0 +1,62 @@
+diff --git a/libusb/os/emscripten_webusb.cpp b/libusb/os/emscripten_webusb.cpp
+index 6480a954..4799f146 100644
+--- a/libusb/os/emscripten_webusb.cpp
++++ b/libusb/os/emscripten_webusb.cpp
+@@ -95,6 +95,38 @@ namespace {
+ 		src = new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
+ 		HEAPU8.set(src, dst);
+ 	});
++
++EM_JS(void, em_cancel_transfer_promise, (usbi_transfer *transfer), {
++  if (Module.libusbTransferPromises[transfer]) {
++    Module.libusbTransferPromises[transfer].cancel();
++    delete Module.libusbTransferPromises[transfer];
++  }
++});
++
++EM_JS(EM_VAL, em_wrap_transfer_promise, (usbi_transfer *transfer, EM_VAL handle), {
++  let prom = Emval.toValue(handle);
++  const promWrap = new Promise((resolve, reject) => {
++    prom.then((...args) => {
++      if (prom) {
++        resolve(...args);
++      }
++    }).catch((...args) => {
++      if (prom) {
++        reject(...args);
++      }
++    }).finally(() => {
++      delete Module.libusbTransferPromises[transfer];
++    });
++  });
++  promWrap.cancel = () => {
++    prom = null; // mark as cancelled
++  };
++  // save promise
++  Module.libusbTransferPromises = Module.libusbTransferPromises || {};
++  Module.libusbTransferPromises[transfer] = promWrap;
++  // return
++  return Emval.toHandle(promWrap);
++});
+ // clang-format on
+ 
+ libusb_transfer_status getTransferStatus(const val& transfer_result) {
+@@ -703,6 +735,7 @@ int em_submit_transfer(usbi_transfer* itransfer) {
+ 			default:
+ 				return LIBUSB_ERROR_NOT_SUPPORTED;
+ 		}
++		transfer_promise = val::take_ownership(em_wrap_transfer_promise(itransfer, transfer_promise.as_handle()));
+ 		// Not a coroutine because we don't want to block on this promise, just
+ 		// schedule an asynchronous callback.
+ 		promiseThen(CaughtPromise(std::move(transfer_promise)),
+@@ -719,6 +752,10 @@ void em_clear_transfer_priv(usbi_transfer* itransfer) {
+ }
+ 
+ int em_cancel_transfer(usbi_transfer* itransfer) {
++	usbi_signal_transfer_completion(itransfer);
++	runOnMain([itransfer]() {
++		em_cancel_transfer_promise(itransfer);
++	});
+ 	return LIBUSB_SUCCESS;
+ }
+ 

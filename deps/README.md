@@ -40,3 +40,6 @@ Be careful testing new patches because `./build.sh --clean` will clean all the d
     * (FEATURE) implement `SANE_DEBUG_GLOBAL` environment variable to set debug level across all backends
 
 ### libusb (libusb.patch)
+
+* `libusb/libusb/os/emscripten_webusb.cpp`:
+    * (FIX) fix cancel function not signaling transfer completion
