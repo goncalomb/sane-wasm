@@ -1,11 +1,11 @@
 diff --git a/libusb/os/emscripten_webusb.cpp b/libusb/os/emscripten_webusb.cpp
-index 6480a954..4799f146 100644
+index 51cef4b7..d06f34a2 100644
 --- a/libusb/os/emscripten_webusb.cpp
 +++ b/libusb/os/emscripten_webusb.cpp
-@@ -95,6 +95,38 @@ namespace {
- 		src = new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
- 		HEAPU8.set(src, dst);
+@@ -134,6 +134,38 @@ EM_JS(EM_VAL, usbi_em_device_safe_open_close, (EM_VAL device, bool open), {
  	});
+ 	return Emval.toHandle(promiseChain);
+ });
 +
 +EM_JS(void, em_cancel_transfer_promise, (usbi_transfer *transfer), {
 +  if (Module.libusbTransferPromises[transfer]) {
@@ -41,7 +41,7 @@ index 6480a954..4799f146 100644
  // clang-format on
  
  libusb_transfer_status getTransferStatus(const val& transfer_result) {
-@@ -703,6 +735,7 @@ int em_submit_transfer(usbi_transfer* itransfer) {
+@@ -793,6 +825,7 @@ int em_submit_transfer(usbi_transfer* itransfer) {
  			default:
  				return LIBUSB_ERROR_NOT_SUPPORTED;
  		}
@@ -49,7 +49,7 @@ index 6480a954..4799f146 100644
  		// Not a coroutine because we don't want to block on this promise, just
  		// schedule an asynchronous callback.
  		promiseThen(CaughtPromise(std::move(transfer_promise)),
-@@ -719,6 +752,10 @@ void em_clear_transfer_priv(usbi_transfer* itransfer) {
+@@ -809,6 +842,10 @@ void em_clear_transfer_priv(usbi_transfer* itransfer) {
  }
  
  int em_cancel_transfer(usbi_transfer* itransfer) {
