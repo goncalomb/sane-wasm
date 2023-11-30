@@ -528,13 +528,11 @@ namespace sane {
 
     val sane_start() {
         if (!handle) {
-            co_return build_response(SANE_STATUS_INVAL);
+            return build_response(SANE_STATUS_INVAL);
         }
 
-        SANE_Status status = co_await run_on_helper_thread([&] {
-            return ::sane_start(handle);
-        });
-        co_return build_response(status);
+        SANE_Status status = ::sane_start(handle);
+        return build_response(status);
     }
 
     val sane_read() {
