@@ -1,61 +1,67 @@
 diff --git a/libusb/os/emscripten_webusb.cpp b/libusb/os/emscripten_webusb.cpp
-index 51cef4b7..d06f34a2 100644
+index f19c1bd3..bbaffec7 100644
 --- a/libusb/os/emscripten_webusb.cpp
 +++ b/libusb/os/emscripten_webusb.cpp
-@@ -134,6 +134,38 @@ EM_JS(EM_VAL, usbi_em_device_safe_open_close, (EM_VAL device, bool open), {
+@@ -58,8 +58,13 @@ EM_JS(EM_VAL, usbi_em_promise_catch, (EM_VAL handle), {
+ 	promise = promise.then(
+ 		value => ({error : 0, value}),
+ 		error => {
+-			console.error(error);
+ 			let errorCode = -99; // LIBUSB_ERROR_OTHER
++			if (error == Symbol.for('libusb.cancelled')) {
++				// LIBUSB_ERROR_INTERRUPTED
++				errorCode = -10;
++			} else {
++				console.error(error);
++			}
+ 			if (error instanceof DOMException) {
+ 				const ERROR_CODES = {
+ 					// LIBUSB_ERROR_IO
+@@ -134,6 +139,30 @@ EM_JS(EM_VAL, usbi_em_device_safe_open_close, (EM_VAL device, bool open), {
  	});
  	return Emval.toHandle(promiseChain);
  });
 +
-+EM_JS(void, em_cancel_transfer_promise, (usbi_transfer *transfer), {
-+  if (Module.libusbTransferPromises[transfer]) {
-+    Module.libusbTransferPromises[transfer].cancel();
-+    delete Module.libusbTransferPromises[transfer];
-+  }
++EM_JS(void, usbi_em_cancel_transfer_promise, (usbi_transfer *transfer), {
++	if (Module.libusbTransferPromises[transfer]) {
++		Module.libusbTransferPromises[transfer].cancel();
++		delete Module.libusbTransferPromises[transfer];
++	}
 +});
 +
-+EM_JS(EM_VAL, em_wrap_transfer_promise, (usbi_transfer *transfer, EM_VAL handle), {
-+  let prom = Emval.toValue(handle);
-+  const promWrap = new Promise((resolve, reject) => {
-+    prom.then((...args) => {
-+      if (prom) {
-+        resolve(...args);
-+      }
-+    }).catch((...args) => {
-+      if (prom) {
-+        reject(...args);
-+      }
-+    }).finally(() => {
-+      delete Module.libusbTransferPromises[transfer];
-+    });
-+  });
-+  promWrap.cancel = () => {
-+    prom = null; // mark as cancelled
-+  };
-+  // save promise
-+  Module.libusbTransferPromises = Module.libusbTransferPromises || {};
-+  Module.libusbTransferPromises[transfer] = promWrap;
-+  // return
-+  return Emval.toHandle(promWrap);
++EM_JS(EM_VAL, usbi_em_wrap_transfer_promise, (usbi_transfer *transfer, EM_VAL handle), {
++	let cancel;
++	const promise = Emval.toValue(handle);
++	const promiseWrapped = Promise.race([
++		promise,
++		new Promise((resolve, reject) => cancel = reject)
++	]).finally(() => {
++		delete Module.libusbTransferPromises[transfer];
++	});
++	promiseWrapped.cancel = () => cancel(Symbol.for('libusb.cancelled'));
++	// save promise
++	Module.libusbTransferPromises = Module.libusbTransferPromises || {};
++	Module.libusbTransferPromises[transfer] = promiseWrapped;
++	// return
++	return Emval.toHandle(promiseWrapped);
 +});
  // clang-format on
  
  libusb_transfer_status getTransferStatus(const val& transfer_result) {
-@@ -793,6 +825,7 @@ int em_submit_transfer(usbi_transfer* itransfer) {
+@@ -769,6 +798,7 @@ int em_submit_transfer(usbi_transfer* itransfer) {
  			default:
  				return LIBUSB_ERROR_NOT_SUPPORTED;
  		}
-+		transfer_promise = val::take_ownership(em_wrap_transfer_promise(itransfer, transfer_promise.as_handle()));
++		transfer_promise = val::take_ownership(usbi_em_wrap_transfer_promise(itransfer, transfer_promise.as_handle()));
  		// Not a coroutine because we don't want to block on this promise, just
  		// schedule an asynchronous callback.
  		promiseThen(CaughtPromise(std::move(transfer_promise)),
-@@ -809,6 +842,10 @@ void em_clear_transfer_priv(usbi_transfer* itransfer) {
+@@ -785,6 +815,9 @@ void em_clear_transfer_priv(usbi_transfer* itransfer) {
  }
  
  int em_cancel_transfer(usbi_transfer* itransfer) {
-+	usbi_signal_transfer_completion(itransfer);
 +	runOnMain([itransfer]() {
-+		em_cancel_transfer_promise(itransfer);
++		usbi_em_cancel_transfer_promise(itransfer);
 +	});
  	return LIBUSB_SUCCESS;
  }
