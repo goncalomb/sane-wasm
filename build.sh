@@ -182,7 +182,7 @@ fi
 (
     cd deps/libusb
     [ -f configure ] || NOCONFIGURE=1 ./autogen.sh
-    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32
+    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32-unknown-emscripten
     emmake make -j install
 )
 
@@ -230,10 +230,12 @@ sed -i "s/^number_of_devices .*/number_of_devices -999/g" "$PREFIX/etc/sane.d/te
 
 # build sane-wasm itself (with glue.cpp)
 set -x
+# XXX: -std=c++20 help?
 "$SANE/libtool" --tag=CC --mode=link emcc \
+    -std=c++20 \
     "-I$SANE/include" "$SANE/backend/.libs/libsane.la" "$SANE/sanei/.libs/libsanei.la" \
     glue.cpp -o build/libsane.html "${D_O0G3[@]}" \
-    --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=1 \
+    --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=2 \
     --embed-file="$PREFIX/etc/sane.d@/etc/sane.d" \
     -sEXPORTED_RUNTIME_METHODS=FS \
     -sMODULARIZE -sEXPORT_NAME=LibSANE \

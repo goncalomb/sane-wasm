@@ -40,9 +40,12 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
 #include <sane/sane.h>
 #include <string.h>
 #include <string>
+#include <coroutine>
 
 #include "build/version.h"
 
@@ -50,9 +53,40 @@ using namespace emscripten;
 
 #define BUFFER_LEN 2*1024*1024
 
+static ProxyingQueue queue;
+static std::thread helper;
+
 SANE_Int version_code = 0;
 SANE_Handle handle = NULL;
 SANE_Byte buffer[BUFFER_LEN];
+
+void helper_thread_main() {
+    emscripten_runtime_keepalive_push();
+}
+
+template <typename Function>
+auto run_on_helper_thread(Function&& fn) {
+    // https://en.cppreference.com/w/cpp/language/coroutines
+    struct awaiter : std::suspend_always
+    {
+        Function _fn;
+        std::optional<std::invoke_result_t<Function>> _re;
+        void await_suspend(std::coroutine_handle<> h)
+        {
+            queue.proxyCallback(
+                helper.native_handle(),
+                [this] { _re.emplace(_fn()); },
+                [h] { h.resume(); },
+                NULL
+            );
+        }
+        std::invoke_result_t<Function> await_resume()
+        {
+            return std::move(_re.value());
+        }
+    };
+    return awaiter{{}, fn};
+}
 
 val build_response(SANE_Status status, const char *key, const val &value = val::null()) {
     val obj = val::object();
@@ -69,6 +103,8 @@ val build_response(SANE_Status status) {
 
 #define RETURN_IF_ERROR(status) if (status != SANE_STATUS_GOOD) return build_response(status);
 #define RETURN_IF_ERROR_KEY(status, key) if (status != SANE_STATUS_GOOD) return build_response(status, key);
+#define CORETURN_IF_ERROR(status) if (status != SANE_STATUS_GOOD) co_return build_response(status);
+#define CORETURN_IF_ERROR_KEY(status, key) if (status != SANE_STATUS_GOOD) co_return build_response(status, key);
 
 val bitmap_cap_to_val(SANE_Int cap) {
     val obj = val::object();
@@ -501,24 +537,29 @@ namespace sane {
 
     val sane_read() {
         if (!handle) {
-            return build_response(SANE_STATUS_INVAL, "data");
+            co_return build_response(SANE_STATUS_INVAL, "data");
         }
 
         SANE_Int len = 0;
-        SANE_Status status = ::sane_read(handle, buffer, BUFFER_LEN, &len);
-        RETURN_IF_ERROR_KEY(status, "data");
+        SANE_Status status = co_await run_on_helper_thread([&len] {
+            return ::sane_read(handle, buffer, BUFFER_LEN, &len);
+        });
+        CORETURN_IF_ERROR_KEY(status, "data");
 
         val data = val(typed_memory_view(len, buffer));
-        return build_response(status, "data", data);
+        co_return build_response(status, "data", data);
     }
 
     val sane_cancel() {
         if (!handle) {
-            return build_response(SANE_STATUS_INVAL);
+            co_return build_response(SANE_STATUS_INVAL);
         }
 
-        ::sane_cancel(handle);
-        return build_response(SANE_STATUS_GOOD);
+        co_await run_on_helper_thread([&] {
+            ::sane_cancel(handle);
+            return NULL;
+        });
+        co_return build_response(SANE_STATUS_GOOD);
     }
 
     val sane_strstatus(int status) {
@@ -570,6 +611,7 @@ int main() {
     module_set("SANE_UNIT", map_to_val_object(sane::SANE_UNIT).as_handle());
     module_set("SANE_CONSTRAINT", map_to_val_object(sane::SANE_CONSTRAINT).as_handle());
     module_set("SANE_FRAME", map_to_val_object(sane::SANE_FRAME).as_handle());
+    helper = std::thread(helper_thread_main);
     return 0;
 }
 
