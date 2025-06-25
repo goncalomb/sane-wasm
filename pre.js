@@ -84,7 +84,7 @@
         sane_control_option_set_value: true, // some options are async
         sane_control_option_set_auto: true, // suspected of possibly being async
         sane_get_parameters: false, // sync?
-        sane_start: false, // sync?
+        sane_start: true, // async, on some backends
         sane_read: true, // async, waits for scan completion
         sane_cancel: true, // async, waits for scan completion
         sane_strstatus: false, // sync

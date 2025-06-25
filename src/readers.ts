@@ -153,16 +153,12 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
     /**
      * Start scanning operation.
      */
-    start() {
+    async start() {
         if (this._used) {
             // readers are single use
-            return {
-                status: SANEStatus.INVAL as SANEStatus.INVAL, // force return type coalesce
-                parameters: null,
-                promise: Promise.reject<void>(new Error("Scan readers cannot be reused.")),
-            };
+            throw new Error("Scan readers cannot be reused.");
         } else {
-            const { status } = this._lib.sane_start();
+            const { status } = await this._lib.sane_start();
             if (status !== SANEStatus.GOOD) {
                 return {
                     status,

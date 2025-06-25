@@ -360,7 +360,7 @@ export interface LibSANE {
      * Equivalent to the SANE API C function `sane_start`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-start}
      */
-    sane_start: () => { status: SANEStatus; };
+    sane_start: () => Promise<{ status: SANEStatus; }>;
 
     /**
      * Equivalent to the SANE API C function `sane_read`.
