@@ -1,6 +1,7 @@
 name: Documentation on GitHub Pages
 
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
 
