@@ -173,7 +173,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
         // to wait for sane_read, so subsequent fails need to use this._killed
         // and run the read loop
 
-        const { status, parameters } = this._lib.sane_get_parameters();
+        const { status, parameters } = await this._lib.sane_get_parameters();
         if (status !== SANEStatus.GOOD) {
             this._killed = new Error(`Status ${SANEStatus[status]} during sane_get_parameters().`);
             return {

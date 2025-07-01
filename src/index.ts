@@ -354,7 +354,7 @@ export interface LibSANE {
      * Equivalent to the SANE API C function `sane_get_parameters`.
      * @see {@link https://sane-project.gitlab.io/standard/1.06/api.html#sane-get-parameters}
      */
-    sane_get_parameters: () => { status: SANEStatus.GOOD; parameters: SANEParameters } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; parameters: null };
+    sane_get_parameters: () => Promise<{ status: SANEStatus.GOOD; parameters: SANEParameters } | { status: Exclude<SANEStatus, SANEStatus.GOOD>; parameters: null }>;
 
     /**
      * Equivalent to the SANE API C function `sane_start`.
