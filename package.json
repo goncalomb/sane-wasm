@@ -48,9 +48,9 @@
     }
   },
   "devDependencies": {
-    "jest": "^29.6.4",
-    "jest-extended": "^4.0.1",
-    "typedoc": "^0.25.0",
-    "typescript": "^5.2.2"
+    "jest": "^30.5.2",
+    "jest-extended": "^7.0.0",
+    "typedoc": "^0.28.20",
+    "typescript": "^6.0.3"
   }
 }
