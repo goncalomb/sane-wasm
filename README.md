@@ -38,35 +38,6 @@ The usb package ([node-usb](https://github.com/node-usb/node-usb)) is required t
 
 See [examples/node/](https://github.com/goncalomb/sane-wasm/tree/master/examples/node) for a working example.
 
-### As Git Submodule (not recommended) / Custom Build
-
-As an alternative, you can add sane-wasm as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to your application and integrate `./build.sh` with your build process. This is not recommended as it relies on some magical/dubious code on `./build.sh` to make the build work.
-
-You can also just build sane-wasm independently and use the build artifacts...
-
-```
-<script src="build/libsane.js"></script>
-<script>
-    window.LibSANE().then(lib => {
-        // your code
-        console.log(lib.sane_init());
-    });
-</script>
-```
-
-```
-const { libsane } = require('./sane-wasm');
-libsane().then(lib => {
-    console.log(lib.sane_init());
-});
-```
-
-```
-import { libsane } from './sane-wasm';
-const lib = await libsane();
-console.log(lib.sane_init());
-```
-
 ## Building
 
 ### SANE Only
