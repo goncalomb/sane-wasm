@@ -2,6 +2,7 @@
   "name": "sane-wasm",
   "version": "0.5.0",
   "description": "A project to bring the SANE API to the web.",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -48,6 +49,8 @@
     }
   },
   "devDependencies": {
+    "@types/emscripten": "^1.41.6",
+    "@types/node": "^26.6.4",
     "jest": "^30.5.2",
     "jest-extended": "^7.0.0",
     "typedoc": "^0.28.20",
