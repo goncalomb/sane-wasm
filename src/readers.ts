@@ -87,18 +87,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
                         await this._lib.sane_cancel(); // ignore status
                     }
 
-                    // reads are non-blocking because of how emscripten works
-                    // this causes sane_read() to immediately return with
-                    // 0 bytes of data, this goes against the SANE spec,
-                    // blocking I/O by default
-                    // the only option right now is to poll the read using
-                    // setTimeout(), this is not ideal
-                    // currently even emscripten's asyncify does not help here,
-                    // but in the future it might help support blocking I/O
-                    // XXX: are we in the future now? can we improve this
-                    // https://github.com/emscripten-core/emscripten/issues/13214
-
-                    const { status, data } = await this._lib.sane_read(); // non-blocking
+                    const { status, data } = await this._lib.sane_read();
 
                     if (status === SANEStatus.GOOD) {
                         if (parameters && data.length) {
@@ -134,7 +123,7 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
 
                     }
 
-                    setTimeout(read, data && data.length > 0 ? 10 : 200);
+                    setTimeout(read, 10);
                 } catch (e) {
                     const ee = e instanceof Error ? e : new Error("Unknown error while scanning.");
                     if (this._killed) {
@@ -143,10 +132,10 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
                         return;
                     }
                     this._killed = ee;
-                    setTimeout(read, 200);
+                    setTimeout(read, 10);
                 }
             };
-            setTimeout(read, 200);
+            setTimeout(read, 10);
         });
     }
 
