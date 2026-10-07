@@ -28,6 +28,26 @@ test('sane_get_devices', async () => {
     });
 });
 
+test('sane_read blocks and returns data', async () => {
+    const l = await lib;
+    const { devices } = await l.sane_get_devices();
+    expect(devices.length).toBeGreaterThan(0);
+
+    const openRes = await l.sane_open(devices[0].name);
+    expect(openRes.status).toBe(l.SANE_STATUS.GOOD);
+
+    const startRes = await l.sane_start();
+    expect(startRes.status).toBe(l.SANE_STATUS.GOOD);
+
+    const readRes = await l.sane_read();
+    expect(readRes.status).toBe(l.SANE_STATUS.GOOD);
+    expect(readRes.data).toBeInstanceOf(Uint8Array);
+    expect(readRes.data.length).toBeGreaterThan(0);
+
+    await l.sane_cancel();
+    await l.sane_close();
+});
+
 test('sane_exit', async () => {
     const l = await lib;
     expect(await l.sane_exit()).toMatchObject({
