@@ -20,17 +20,15 @@ https://www.npmjs.com/package/sane-wasm?activeTab=code
 
 ### For Web Environments (e.g. Webpack)
 
+```bash
+npm install sane-wasm
 ```
-npm install -D sane-wasm
-```
-
-The main .js will not be bundled with your application. A loader ([lib/loader.js](https://github.com/goncalomb/sane-wasm/blob/master/lib/loader.js)) is provided to automatically load the .js/.wasm files from a CDN ([jsdelivr.com](https://www.jsdelivr.com/)). You can configure the loader to serve the files from your server if you want.
 
 See [examples/webpack/](https://github.com/goncalomb/sane-wasm/tree/master/examples/webpack) for a working example.
 
 ### For Node.js
 
-```
+```bash
 npm install sane-wasm usb
 ```
 

@@ -1,4 +1,4 @@
-import { LibSANE, SANEFrame, SANEParameters, SANEStatus } from ".";
+import { LibSANE, SANEFrame, SANEParameters, SANEStatus } from "./index.js";
 
 abstract class EventBaseClass<T extends Record<keyof T, any[]>> {
 

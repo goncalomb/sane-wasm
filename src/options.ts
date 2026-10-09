@@ -1,4 +1,4 @@
-import { LibSANE, SANEOptionDescriptor, SANEStatus, SANEValueType } from ".";
+import { LibSANE, SANEOptionDescriptor, SANEStatus, SANEValueType } from "./index.js";
 
 export interface ScanOption<T = any> {
     index: number;

@@ -194,12 +194,16 @@ set -x
     --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=2 \
     --embed-file="$PREFIX/etc/sane.d@/etc/sane.d" \
     -sEXPORTED_RUNTIME_METHODS=FS \
-    -sMODULARIZE -sEXPORT_NAME=LibSANE \
+    -sENVIRONMENT=web,node \
+    -sMODULARIZE \
+    -sEXPORT_ES6 \
+    -sEXPORT_NAME=LibSANE \
     --pre-js pre.js --post-js post.js --shell-file shell.html
 set +x
 
-# XXX: temporary fix while we don't have a proper esm setup
-echo '{ "type": "commonjs" }' >build/package.json
+# XXX: rename worker file to .cjs (it uses require even with EXPORT_ES6)
+sed -i "s/libsane\.worker\.js/libsane\.worker\.cjs/g" build/libsane.js
+mv build/libsane.worker.js build/libsane.worker.cjs
 
 # clean build directory on non-debug builds
 if [ -z "$ARG_debug" ]; then

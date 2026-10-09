@@ -386,32 +386,6 @@ export interface LibSANE {
  */
 export type LibSANEOptions = {
     /**
-     * Loader URL that serves the build artifacts (libsane.js etc.).
-     *
-     * The loader is only used on web environments.
-     *
-     * @defaultvalue "sane-wasm @ jsdelivr.net"
-     */
-    loaderURL?: string;
-    /**
-     * Should the loader prefetch the resources to a Bob object? This is
-     * required when loading from a different origin. Check the loader
-     * code for more information.
-     *
-     * The loader is only used on web environments.
-     *
-     * @defaultvalue `true`
-     */
-    loaderPrefetchToBlob?: boolean;
-    /**
-     * Should the loader remove the global module variable `window.LibSANE`?
-     *
-     * The loader is only used on web environments.
-     *
-     * @defaultvalue `true`
-     */
-    loaderRemoveGlobal?: boolean;
-    /**
      * Enables SANE low-level debug messages, this can be quite verbose.
      *
      * @defaultvalue `false`
@@ -477,7 +451,7 @@ export type LibSANEFactory = (options?: {
  * Main LibSANE factory.
  */
 // @ts-ignore
-export const libsane = (await import('../lib')).default as LibSANEFactory;
+export const libsane = (await import('../build/libsane.js')).default as LibSANEFactory;
 
 /**
  * @deprecated The default export may be removed in the future.
@@ -485,5 +459,5 @@ export const libsane = (await import('../lib')).default as LibSANEFactory;
  */
 export default libsane;
 
-export * from './options';
-export * from './readers';
+export * from './options.js';
+export * from './readers.js';
