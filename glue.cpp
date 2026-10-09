@@ -46,6 +46,8 @@
 #include <string.h>
 #include <string>
 #include <coroutine>
+#include <chrono>
+#include <thread>
 
 #include "build/version.h"
 
@@ -542,7 +544,15 @@ namespace sane {
 
         SANE_Int len = 0;
         SANE_Status status = co_await run_on_helper_thread([&len] {
-            return ::sane_read(handle, buffer, BUFFER_LEN, &len);
+            SANE_Status s;
+            do {
+                queue.execute();
+                s = ::sane_read(handle, buffer, BUFFER_LEN, &len);
+                if (s == SANE_STATUS_GOOD && len == 0) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+            } while (handle && s == SANE_STATUS_GOOD && len == 0);
+            return s;
         });
         CORETURN_IF_ERROR_KEY(status, "data");
 
