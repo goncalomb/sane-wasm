@@ -198,6 +198,9 @@ set -x
     --pre-js pre.js --post-js post.js --shell-file shell.html
 set +x
 
+# XXX: temporary fix while we don't have a proper esm setup
+echo '{ "type": "commonjs" }' >build/package.json
+
 # clean build directory on non-debug builds
 if [ -z "$ARG_debug" ]; then
     rm -rf build/.libs build/prefix build/version.h

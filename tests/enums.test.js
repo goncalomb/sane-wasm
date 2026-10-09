@@ -1,5 +1,5 @@
-// const { webusb } = require('usb');
-const { libsane, ...rest } = require('..');
+import * as all from '..';
+import { libsane } from '..';
 
 const lib = libsane();
 
@@ -14,6 +14,6 @@ const tsEnumsToSane = {
 test('ts enums match sane enums', async () => {
     const l = await lib;
     Object.entries(tsEnumsToSane).forEach(([tsName, saneName]) => {
-        expect(rest[tsName]).toContainAllEntries(Object.entries(l[saneName]));
+        expect(all[tsName]).toContainAllEntries(Object.entries(l[saneName]));
     });
 });

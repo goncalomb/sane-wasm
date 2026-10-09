@@ -1,6 +1,6 @@
-// const { webusb } = require('usb');
-const { libsane } = require('..');
-const { execSync } = require('child_process');
+import { execSync } from 'node:child_process';
+import { libsane } from '..';
+import pkg from '../package.json' with { type: 'json' };
 
 const lib = libsane();
 
@@ -11,12 +11,12 @@ test('version', async () => {
     // test version, expect clean builds, don't include '--dirty'
     expect(l.SANE_WASM_VERSION).toBe(execSync('git describe --tags --always', { encoding: 'utf8' }).trim());
     // test 'package.json' version
-    expect(l.SANE_WASM_VERSION.split('-')[0]).toStartWith(`v${require('../package.json').version}`);
+    expect(l.SANE_WASM_VERSION.split('-')[0]).toStartWith(`v${pkg.version}`);
 });
 
-test('46 backends', async () => {
+test('47 backends', async () => {
     const l = await lib;
-    expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(46);
+    expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(47);
 });
 
 test('sane version 1.0', async () => {

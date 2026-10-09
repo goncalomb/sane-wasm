@@ -476,7 +476,8 @@ export type LibSANEFactory = (options?: {
 /**
  * Main LibSANE factory.
  */
-export const libsane = require('../lib') as LibSANEFactory;
+// @ts-ignore
+export const libsane = (await import('../lib')).default as LibSANEFactory;
 
 /**
  * @deprecated The default export may be removed in the future.

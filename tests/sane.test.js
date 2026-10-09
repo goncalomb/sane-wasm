@@ -1,5 +1,4 @@
-// const { webusb } = require('usb');
-const { libsane } = require('..');
+import { libsane } from '..';
 
 const lib = libsane({
     sane: {
