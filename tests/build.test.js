@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { expect, test } from 'vitest';
 import { libsane } from '..';
 import pkg from '../package.json' with { type: 'json' };
 

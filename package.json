@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "NODE_OPTIONS='--disable-warning=ExperimentalWarning --experimental-vm-modules' jest --runInBand",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "npm run clean:ts && npm run clean:sane",
     "clean:ts": "rm -rf dist/ docs/",
     "clean:sane": "./build.sh --no-build --clean",
@@ -34,11 +35,6 @@
     "url": "https://github.com/goncalomb/sane-wasm/issues"
   },
   "homepage": "https://github.com/goncalomb/sane-wasm#readme",
-  "jest": {
-    "setupFilesAfterEnv": [
-      "jest-extended/all"
-    ]
-  },
   "peerDependencies": {
     "usb": "^2.10.0"
   },
@@ -50,10 +46,10 @@
   "devDependencies": {
     "@types/emscripten": "^1.41.6",
     "@types/node": "^26.6.4",
-    "jest": "^30.5.2",
     "jest-extended": "^7.0.0",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
-    "usb": "^2.10.0"
+    "usb": "^2.10.0",
+    "vitest": "^5.0.3"
   }
 }

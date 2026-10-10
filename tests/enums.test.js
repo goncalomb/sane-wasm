@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest';
 import * as all from '..';
 import { libsane } from '..';
 
