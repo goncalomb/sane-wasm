@@ -60,8 +60,30 @@
             <h2>Scan Result</h2>
             <canvas></canvas>
         </main>
-        {{{ SCRIPT }}}
         <script>
+            function reloadWithDebug(on = true) {
+                location.hash = on ? JSON.stringify({
+                    debugSANE: true,
+                    debugUSB: true,
+                    debugFunctionCalls: true,
+                    debugTestDevices: 5,
+                }) : "";
+                location.reload();
+            }
+            const Module = LibSANE = {
+                sane: JSON.parse(decodeURIComponent(location.hash.substring(1)) || null) || {
+                    debugFunctionCalls: true,
+                    debugTestDevices: 3,
+                },
+            };
+            console.log("sane = ", Module.sane);
+            Module._promiseOnRuntimeInitialized = new Promise((resolve) => {
+                Module.onRuntimeInitialized = () => resolve(Module);
+            });
+            // the SCRIPT placeholder initializes the Module object
+        </script>
+        {{{ SCRIPT }}}
+        <script type="module">
             (function() {
                 // util function to build the dom
                 const tree = (data, parent = document.createDocumentFragment()) => {
@@ -301,29 +323,9 @@
                     }
                 }
 
-                // reload with debug
-                function reloadWithDebug() {
-                    const sane = {
-                        debugSANE: true,
-                        debugUSB: true,
-                        debugFunctionCalls: true,
-                        debugTestDevices: 5,
-                    };
-                    location.hash = JSON.stringify(sane);
-                    location.reload();
-                }
-
                 // initialization
                 window.addEventListener("load", () => {
-                    const sane = JSON.parse(decodeURIComponent(location.hash.substring(1)) || null) || {
-                        debugFunctionCalls: true,
-                        debugTestDevices: 3,
-                    };
-                    console.log("sane = ", sane);
-                    window.LibSANE({ sane }).then(LibSANE => {
-                        // publish module to window
-                        window.LibSANE = LibSANE;
-                        // initialize
+                    Module._promiseOnRuntimeInitialized.then(LibSANE => {
                         const saneControls = document.querySelector("#sane-controls");
                         saneControls.innerHTML = "";
                         saneControls.append(tree([

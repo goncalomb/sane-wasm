@@ -201,10 +201,6 @@ set -x
     --pre-js pre.js --post-js post.js --shell-file shell.html
 set +x
 
-# XXX: rename worker file to .cjs (it uses require even with EXPORT_ES6)
-sed -i "s/libsane\.worker\.js/libsane\.worker\.cjs/g" build/libsane.js
-mv build/libsane.worker.js build/libsane.worker.cjs
-
 # clean build directory on non-debug builds
 if [ -z "$ARG_debug" ]; then
     rm -rf build/.libs build/prefix build/version.h
