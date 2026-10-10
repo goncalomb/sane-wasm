@@ -138,6 +138,7 @@ fi
 (
     cd deps/libusb
     [ -f configure ] || NOCONFIGURE=1 ./autogen.sh
+    export LDFLAGS="-sDEFAULT_TO_CXX"
     [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32-unknown-emscripten
     emmake make -j install
 )
@@ -147,14 +148,14 @@ fi
     cd deps/backends
     [ -f configure ] || ./autogen.sh
     export CPPFLAGS="-I$DEPS/libjpeg-turbo -Wno-error=incompatible-function-pointer-types"
-    export LDFLAGS="-L$DEPS/libjpeg-turbo --bind -sASYNCIFY -sALLOW_MEMORY_GROWTH"
+    export LDFLAGS="-L$DEPS/libjpeg-turbo --bind -sDEFAULT_TO_CXX -sASYNCIFY -sALLOW_MEMORY_GROWTH"
     export BACKENDS="$SANE_WASM_BACKENDS"
     # XXX: Force enable mmap, configure can't detect valid mmap, force it on!
     # I've looked briefly into this, it's probably emscripten's implementation
     # that is not complete, mmap appears to only be used by the pieusb backend
     # consider disabling it if this is problematic.
-    [ -f Makefile ] || sed -i "s/ac_cv_func_mmap_fixed_mapped=no/ac_cv_func_mmap_fixed_mapped=yes/g" configure
-    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32 --enable-pthread --disable-shared
+    AC_CV+=(ac_cv_func_mmap_fixed_mapped=yes)
+    [ -f Makefile ] || emconfigure ./configure --prefix="$PREFIX" --host=wasm32 --enable-pthread --disable-shared "${AC_CV[@]}"
     # make only the required parts
     emmake make -j -C lib
     emmake make -j -C sanei
@@ -194,6 +195,8 @@ set -x
     --bind -pthread -sASYNCIFY -sALLOW_MEMORY_GROWTH -sPTHREAD_POOL_SIZE=2 \
     --embed-file="$PREFIX/etc/sane.d@/etc/sane.d" \
     -sEXPORTED_RUNTIME_METHODS=FS \
+    -sDEFAULT_TO_CXX \
+    -sGROWABLE_ARRAYBUFFERS=2 \
     -sENVIRONMENT=web,node \
     -sMODULARIZE \
     -sEXPORT_ES6 \
