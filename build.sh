@@ -4,7 +4,8 @@
 # Copyright (C) 2023 Gonçalo MB <me@goncalomb.com>
 # GNU GPLv2 + GNU LGPLv2.1
 
-set -eo pipefail
+set -euo pipefail
+shopt -s nullglob
 cd -- "$(dirname -- "$0")"
 
 ARGS=("with-docker" "clean" "no-build" "debug" "emrun" "shell")
@@ -29,6 +30,9 @@ for V in "$@"; do
     fi
 done
 
+SANE_WASM_DOCKER=${SANE_WASM_DOCKER:-}
+SANE_WASM_SHELL=${SANE_WASM_SHELL:-}
+
 # use docker
 if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
     docker build -t sane-wasm .
@@ -36,22 +40,21 @@ if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
     if [ -n "$ARG_emrun" ]; then
         EXTRA_ARGS+=("-p6931:6931")
     fi
-
     docker run --rm -it -eSANE_WASM_DOCKER=1 \
         -v "$PWD:/src" \
         -u "$(id -u):$(id -g)" \
         "${EXTRA_ARGS[@]}" \
         sane-wasm:latest "$@"
-
     exit
 fi
 
 # clean
 if [ -n "$ARG_clean" ]; then
-    find deps -mindepth 1 -maxdepth 1 -type d | while IFS= read -r DIR; do
+    for DIR in deps/*; do
+        [ -d "$DIR" ] || continue
         echo "cleaning '$DIR'"
         git -C "$DIR" checkout .
-        git -C "$DIR" clean -fdx
+        git -C "$DIR" clean -ffdx
     done
     echo "removing 'build'"
     rm -rf build
@@ -76,7 +79,6 @@ if [ -n "$ARG_no_build" ]; then
 fi
 
 # build
-rm -rf build
 mkdir -p build
 
 # The backends are selected automatically by reading SANE's .desc files and
@@ -113,12 +115,17 @@ if [ -n "$ARG_debug" ]; then
     D_O0G3=("-O0" "-g3")
 fi
 
-# apply dependency patches
+# update dependencies and apply patches
 (
     cd deps
-    find . -mindepth 1 -maxdepth 1 -type f -name "*.patch" -printf "%f\n" | while IFS= read -r PATCH; do
-        echo "applying '$PATCH'"
-        git -C "${PATCH%.patch}" apply "../$PATCH" || true # failing is expected on non-clean builds (patch already applied)
+    git submodule update --init --depth 1
+    for PATCH in *.patch; do
+        NAME="${PATCH%.patch}"
+        FILE="$PWD/$PATCH"
+        if ! git -C "$NAME" apply -q --check --reverse "$FILE"; then
+            echo "applying '$PATCH'"
+            git -C "$NAME" apply "$FILE"
+        fi
     done
 )
 

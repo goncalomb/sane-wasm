@@ -8,20 +8,20 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "npm run clean:ts && npm run clean:sane",
+    "clean": "npm run clean:sane && npm run clean:ts",
     "clean:ts": "rm -rf dist/ docs/",
     "clean:sane": "./build.sh --no-build --clean",
     "prebuild": "rm -rf dist/ docs/ build/",
-    "build": "npm run build:ts && npm run build:sane",
+    "build": "npm run build:sane && npm run build:ts",
     "build:ts": "tsc && typedoc",
     "postbuild:ts": "rm -rf dist/docs-plugin.*",
     "build:sane": "./build.sh --with-docker --clean",
-    "debug:sane": "./build.sh --with-docker --debug --emrun"
+    "debug": "./build.sh --with-docker --debug --emrun",
+    "emrun": "./build.sh --with-docker --no-build --emrun"
   },
   "files": [
     "dist/",
     "build/",
-    "libsane.d.ts",
     "LICENSE-LGPL.txt",
     "LICENSE.txt"
   ],

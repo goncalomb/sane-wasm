@@ -38,27 +38,35 @@ See [examples/node/](https://github.com/goncalomb/sane-wasm/tree/master/examples
 
 ## Building
 
-### SANE Only
+A pre-configured Docker image is used for building and debugging. Most `npm run ...` commands use Docker.
 
-Building requires [emscripten](https://github.com/emscripten-core/emscripten) and all the required tools to build the dependencies.
+### Build SANE and test page
 
-The preferred way is just to use the pre-configured Docker image:
-
-    git clone --recurse-submodules https://github.com/goncalomb/sane-wasm.git
-    cd sane-wasm
-    ./build.sh --with-docker --clean
-
-Start the test server with:
-
-    ./build.sh --with-docker --no-build --emrun
-
-Check the test page at: http://localhost:6931/libsane.html.
-
-#### build.sh
-
-The `./build.sh` script has other options for debugging:
-
+```bash
+git clone https://github.com/goncalomb/sane-wasm.git
+cd sane-wasm
+npm run debug
 ```
+
+Check the test page at: <http://localhost:6931/libsane.html>.
+
+### Other commands
+
+```bash
+npm run clean  # clean build artifacts and dependencies
+npm run build  # full clean build (SANE + TypeScript)
+npm run debug  # debug build (SANE only), start the test server
+npm run emrun  # start the test server
+npm run test   # runs the tests
+```
+
+### Non-Docker builds and `build.sh`
+
+Building without Docker is possible but untested. It requires [Emscripten](https://emscripten.org/) and all the tools to build the dependencies, see [Dockerfile](./Dockerfile).
+
+The `./build.sh` script controls the build and has other options for debugging:
+
+```text
 usage: build.sh [options]
   --with-docker  run with docker (preferred)
   --clean        clean 'deps' and 'build' directories
@@ -67,10 +75,6 @@ usage: build.sh [options]
   --emrun        run emrun development server
   --shell        run debug shell (depends on --with-docker)
 ```
-
-### Full Build (SANE + TypeScript)
-
-To do a full build use `npm run build`.
 
 ## API
 
