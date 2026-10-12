@@ -78,6 +78,20 @@ if [ -n "$ARG_no_build" ]; then
     exit
 fi
 
+# update dependencies and apply patches
+(
+    cd deps
+    git submodule update --init --depth 1
+    for PATCH in *.patch; do
+        NAME="${PATCH%.patch}"
+        FILE="$PWD/$PATCH"
+        if ! git -C "$NAME" apply -q --check --reverse "$FILE"; then
+            echo "applying '$PATCH'"
+            git -C "$NAME" apply "$FILE"
+        fi
+    done
+)
+
 # build
 mkdir -p build
 
@@ -114,20 +128,6 @@ D_O0G3=()
 if [ -n "$ARG_debug" ]; then
     D_O0G3=("-O0" "-g3")
 fi
-
-# update dependencies and apply patches
-(
-    cd deps
-    git submodule update --init --depth 1
-    for PATCH in *.patch; do
-        NAME="${PATCH%.patch}"
-        FILE="$PWD/$PATCH"
-        if ! git -C "$NAME" apply -q --check --reverse "$FILE"; then
-            echo "applying '$PATCH'"
-            git -C "$NAME" apply "$FILE"
-        fi
-    done
-)
 
 # libjpeg-turbo
 # https://github.com/libjpeg-turbo/libjpeg-turbo/issues/250
