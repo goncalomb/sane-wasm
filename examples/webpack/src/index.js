@@ -1,4 +1,4 @@
-const { libsane } = require('sane-wasm');
+import { libsane } from 'sane-wasm';
 
 class TextBox {
     constructor() {

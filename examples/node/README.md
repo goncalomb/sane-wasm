@@ -1,4 +1,12 @@
-```
+# sane-wasm node example
+
+```bash
+# build sane-wasm first (on the root directory)
 npm install
-node index.mjs
+npm run build
+
+# then run the example
+cd examples/node
+npm install
+npm run start
 ```

@@ -1,17 +1,19 @@
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import path from 'node:path';
+import webpack from 'webpack';
 
-module.exports = {
+export default {
     mode: 'development',
     entry: './src/index.js',
     plugins: [
+        new webpack.NormalModuleReplacementPlugin(/^node:/, r => r.request = 'data:,'),
         new HtmlWebpackPlugin({
             title: 'sane-wasm webpack example',
         }),
     ],
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(import.meta.dirname, 'dist'),
+        chunkFormat: 'module',
         clean: true,
     },
     devServer: {
