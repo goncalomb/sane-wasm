@@ -131,18 +131,20 @@
         });
 
         // set test backend number of devices
-        if (Module.sane.debugTestDevices) {
+        let dtd = Module.sane.debugTestDevices;
+        if (Number.isFinite(dtd) && dtd > 0) {
+            dtd = Math.min(Math.floor(dtd), 100);
             let buf = Module.FS.readFile("/etc/sane.d/test.conf");
             let match = false;
             const arr = (new TextDecoder()).decode(buf).split("\n").map(l => {
                 if (l.match(/^\s*number_of_devices\s+.*$/)) {
                     match = true;
-                    return `number_of_devices ${Module.sane.debugTestDevices}`;
+                    return `number_of_devices ${dtd}`;
                 }
                 return l;
             });
             if (!match) {
-                arr.push(`number_of_devices ${Module.sane.debugTestDevices}`, "");
+                arr.push(`number_of_devices ${dtd}`, "");
             }
             buf = (new TextEncoder()).encode(arr.join("\n"));
             Module.FS.writeFile("/etc/sane.d/test.conf", buf);

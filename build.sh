@@ -176,21 +176,7 @@ fi
 : >"$PREFIX/etc/sane.d/dll.conf"
 
 # Set test backend's number of devices to 0.
-# XXX: Oops what? There is some kind of invalid memory access on the backend
-#      file deps/backends/backend/test.c, setting number_of_devices to 0 causes
-#      some weird behavior and it's as if 1 device was selected.
-#      I've looked briefly into this, but was unable to find the cause,
-#      it's somehow related to how the option is read with:
-#      read_option (line, "number_of_devices", ...
-#      and then used on a for loop:
-#      for (num = 0; num < init_number_of_devices; num++)
-#      that loop should never run with init_number_of_devices = 0.
-#      I've tested this config on my linux distribution version of SANE and
-#      it triggers a Segmentation Fault so there is definitely a problem there.
-# XXX: Setting it to -999 for now, fix this, and revert this to 0.
-#      The fix should probably be pushed upstream to SANE itself:
-#      https://gitlab.com/sane-project/backends/-/issues
-sed -i "s/^number_of_devices .*/number_of_devices -999/g" "$PREFIX/etc/sane.d/test.conf"
+sed -i "s/^number_of_devices .*/number_of_devices 0/g" "$PREFIX/etc/sane.d/test.conf"
 
 # build sane-wasm itself (with glue.cpp)
 set -x
