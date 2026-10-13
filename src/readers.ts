@@ -37,7 +37,7 @@ abstract class EventBaseClass<T extends Record<keyof T, any[]>> {
 }
 
 /**
- * @private Events types for {@link ScanDataReader}.
+ * Events types for {@link ScanDataReader}.
  */
 export interface ScanDataReaderEventMap extends Record<string, any[]> {
     /**
@@ -187,17 +187,17 @@ export class ScanDataReader<T extends ScanDataReaderEventMap = ScanDataReaderEve
 }
 
 /**
- * @private Events types for {@link ScanImageReader}.
+ * Events types for {@link ScanImageReader}.
  */
 export interface ScanImageReaderEventMap extends ScanDataReaderEventMap {
     /**
      * Image line event, one or more full lines of RGBA data.
      */
-    line: [parameters: SANEParameters, data: Uint8ClampedArray, line: number];
+    line: [parameters: SANEParameters, data: Uint8ClampedArray<ArrayBuffer>, line: number];
     /**
      * Full image event (end of scan), RGBA data.
      */
-    image: [parameters: SANEParameters, data: Uint8ClampedArray];
+    image: [parameters: SANEParameters, data: Uint8ClampedArray<ArrayBuffer>];
 }
 
 /**
@@ -220,7 +220,7 @@ export interface ScanImageReaderEventMap extends ScanDataReaderEventMap {
 export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReaderEventMap> extends ScanDataReader<T> {
 
     private _line: number = 0;
-    private _allData: Uint8ClampedArray = new Uint8ClampedArray();
+    private _allData = new Uint8ClampedArray();
     private _remainder = new Uint8ClampedArray();
 
     constructor(lib: LibSANE) {

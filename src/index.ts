@@ -388,25 +388,25 @@ export type LibSANEOptions = {
     /**
      * Enables SANE low-level debug messages, this can be quite verbose.
      *
-     * @defaultvalue `false`
+     * @defaultValue `false`
      */
     debugSANE?: boolean;
     /**
      * Enables libusb low-level debug messages, this can be quite verbose.
      *
-     * @defaultvalue `false`
+     * @defaultValue `false`
      */
     debugUSB?: boolean;
     /**
      * Enables debug messages for SANE function calls.
      *
-     * @defaultvalue `false`
+     * @defaultValue `false`
      */
     debugFunctionCalls?: boolean;
     /**
      * Sets the number of test devices for SANE's test backend.
      *
-     * @defaultvalue `0`
+     * @defaultValue `0`
      */
     debugTestDevices?: number;
     /**
@@ -417,7 +417,7 @@ export type LibSANEOptions = {
      * functions may stop being asynchronous in some cases. You want this
      * option enabled! This option may be removed in the future.
      *
-     * @defaultvalue `true`
+     * @defaultValue `true`
      */
     promisify?: boolean;
     /**
@@ -428,7 +428,7 @@ export type LibSANEOptions = {
      * @deprecated You want this option enabled! This option may be removed in
      * the future.
      *
-     * @defaultvalue `true`
+     * @defaultValue `true`
      */
     promisifyQueue?: boolean;
 }
