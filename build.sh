@@ -78,6 +78,13 @@ if [ -n "$ARG_no_build" ]; then
     exit
 fi
 
+# find version
+SANE_WASM_COMMIT=$(git rev-parse HEAD)
+SANE_WASM_VERSION=$(git describe --tags --always --dirty)
+if [ -n "$ARG_debug" ]; then
+    SANE_WASM_VERSION="$SANE_WASM_VERSION-debug"
+fi
+
 # update dependencies and apply patches
 (
     cd deps
@@ -92,9 +99,6 @@ fi
     done
 )
 
-# build
-mkdir -p build
-
 # The backends are selected automatically by reading SANE's .desc files and
 # selecting the backends that support at least one USB device.
 # http://www.sane-project.org/sane-backends.html
@@ -107,11 +111,9 @@ mkdir -p build
 #   genesys: causes lockup during sane_get_devices, XXX: to be fixed
 SANE_WASM_BACKENDS=$(./utils.py usb-backends -i test -e template,unsupported,dell1600n_net,genesys)
 
-SANE_WASM_COMMIT=$(git rev-parse HEAD)
-SANE_WASM_VERSION=$(git describe --tags --always --dirty)
-if [ -n "$ARG_debug" ]; then
-    SANE_WASM_VERSION="$SANE_WASM_VERSION-debug"
-fi
+# build
+mkdir -p build
+
 cat <<EOF >build/version.h
 #define SANE_WASM_COMMIT "$SANE_WASM_COMMIT"
 #define SANE_WASM_VERSION "$SANE_WASM_VERSION"
