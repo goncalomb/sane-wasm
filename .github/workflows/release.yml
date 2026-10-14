@@ -1,0 +1,87 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy-pages:
+        type: boolean
+        default: false
+        description: Force deployment to GitHub Pages
+      npm-publish:
+        type: boolean
+        default: false
+        description: Force publishing to NPM
+
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      node-version: ${{ steps.node-version.outputs.version }}
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: crazy-max/ghaction-github-runtime@v4
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: jdx/mise-action@v5
+      - id: node-version
+        run: echo "version=$(node -v)" >>"$GITHUB_OUTPUT"
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+        env:
+          TEST_SKIP_PKG_VERSION: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      - run: mkdir -p pack && npm pack --pack-destination pack
+      - uses: actions/upload-artifact@v7
+        with:
+          name: npm-pack
+          path: pack/*.tgz
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/
+
+  deploy-pages:
+    if: startsWith(github.ref, 'refs/tags/v') || inputs['deploy-pages']
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  npm-publish:
+    if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || inputs['npm-publish'])
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    permissions:
+      id-token: write
+    environment: npm-trusted
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ needs.build.outputs.node-version }}
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v7
+        with:
+          name: npm-pack
+          path: pack/
+      - run: npm publish ./pack/*.tgz

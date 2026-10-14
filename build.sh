@@ -30,20 +30,26 @@ for V in "$@"; do
     fi
 done
 
+GITHUB_ACTIONS=${GITHUB_ACTIONS:-}
 SANE_WASM_DOCKER=${SANE_WASM_DOCKER:-}
 SANE_WASM_SHELL=${SANE_WASM_SHELL:-}
 
 # use docker
 if [ -n "$ARG_with_docker" ] && [ -z "$SANE_WASM_DOCKER" ]; then
-    docker build -t sane-wasm .
-    EXTRA_ARGS=()
-    if [ -n "$ARG_emrun" ]; then
-        EXTRA_ARGS+=("-p6931:6931")
-    fi
-    docker run --rm -it -eSANE_WASM_DOCKER=1 \
+    BUILD_ARGS=()
+    RUN_ARGS=()
+    [ -n "$GITHUB_ACTIONS" ] && BUILD_ARGS+=(
+        --cache-to type=gha,mode=max
+        --cache-from type=gha
+        --load
+    )
+    [ -t 0 ] && RUN_ARGS+=(-it)
+    [ -n "$ARG_emrun" ] && RUN_ARGS+=(-p6931:6931)
+    docker buildx build "${BUILD_ARGS[@]}" -t sane-wasm .
+    docker run --rm -eSANE_WASM_DOCKER=1 \
         -v "$PWD:/src" \
         -u "$(id -u):$(id -g)" \
-        "${EXTRA_ARGS[@]}" \
+        "${RUN_ARGS[@]}" \
         sane-wasm:latest "$@"
     exit
 fi
