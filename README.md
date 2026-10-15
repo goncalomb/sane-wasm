@@ -10,21 +10,23 @@ Right now, it includes [all backends](http://www.sane-project.org/lists/sane-bac
 
 ## WebScan
 
-**Check [webscan.goncalomb.com](https://webscan.goncalomb.com/) for a demo of sane-wasm.** This is a React application that uses sane-wasm for document/image scanning directly in the browser. It exposes all scanning options to the user for full control.
+**Check [webscan.goncalomb.com](https://webscan.goncalomb.com/) ([source](https://github.com/goncalomb/webscan)) for a demo of sane-wasm.** This is a React application that uses sane-wasm for document/image scanning directly in the browser. It exposes all scanning options for full control.
 
 ## Usage
 
 The pre-compiled WebAssembly package for sane-wasm is published on NPM:
 
-https://www.npmjs.com/package/sane-wasm?activeTab=code
+<https://www.npmjs.com/package/sane-wasm>
 
-### For Web Environments (e.g. Webpack)
+### For Web environments (e.g. Webpack, Vite, etc.)
 
 ```bash
 npm install sane-wasm
 ```
 
-See [examples/webpack/](https://github.com/goncalomb/sane-wasm/tree/master/examples/webpack) for a working example.
+Cross-origin isolation ([COOP+COEP](https://web.dev/articles/coop-coep)) is required for [multithreading](https://emscripten.org/docs/porting/pthreads.html) which uses Web Workers and SharedArrayBuffer. This is not optional.
+
+See [examples/webpack/](./examples/webpack/) for a working example.
 
 ### For Node.js
 
@@ -34,7 +36,7 @@ npm install sane-wasm usb
 
 The usb package ([node-usb](https://github.com/node-usb/node-usb)) is required to provide USB functionality.
 
-See [examples/node/](https://github.com/goncalomb/sane-wasm/tree/master/examples/node) for a working example.
+See [examples/node/](./examples/node/) for a working example.
 
 ## Building
 
@@ -54,10 +56,10 @@ Check the test page at: <http://localhost:6931/libsane.html>.
 
 ```bash
 npm run clean  # clean build artifacts and dependencies
-npm run build  # full clean build (SANE + TypeScript)
-npm run debug  # debug build (SANE only), start the test server
+npm run build  # run full clean build (SANE + TypeScript)
+npm run debug  # run debug build (SANE only) and start the test server
 npm run emrun  # start the test server
-npm run test   # runs the tests
+npm run test   # run the tests
 ```
 
 ### Non-Docker builds and `build.sh`
@@ -78,7 +80,9 @@ usage: build.sh [options]
 
 ## API
 
-Most of the SANE API is exposed as-is. Check the [SANE Standard](https://sane-project.gitlab.io/standard/index.html).
+API documentation is available at: [https://goncalomb.github.io/sane-wasm/](https://goncalomb.github.io/sane-wasm/modules.html).
+
+Most of the SANE API is exposed as-is, check the [SANE Standard](https://sane-project.gitlab.io/standard/index.html).
 
 Some safeguards are in place to avoid API misuse and prevent memory leaks. It's important to understand the SANE API and follow the [Code Flow](https://sane-project.gitlab.io/standard/api.html#code-flow) to avoid issues.
 
@@ -86,11 +90,23 @@ Some safeguards are in place to avoid API misuse and prevent memory leaks. It's 
 
 The most important difference with the underlying SANE API is that **device handles are not exposed**. This means that `sane_open()` does not return a device handle. A single handle is managed by the internal code. This effectively means that **only one device can be accessed at a time**. This was a design decision made to simplify the API and prevent other issues.
 
-> Personally, I believe that this is an acceptable change, especially for WebAssembly where it may be easier to lose track of opened resources and crash the application. The SANE API is also somewhat unforgiving and building more safeguards around it (especially with multiple handles) is not worth the effort. Ultimately I don't see a use that requires more than one device open at a time. -goncalomb
+Other differences include:
 
-### Documentation
+- function arguments and return values are adapted for javascript (see docs)
+- extra sane-wasm constants: `SANE_WASM_COMMIT`, `SANE_WASM_VERSION`, and `SANE_WASM_BACKENDS`
+- values of type `SANE_Fixed` are automatically converted to/from `Number`
+- extra `sane_get_state()` function exclusive to sane-wasm
+- `sane_control_option()` is split into 3 separate functions:
+  - `sane_control_option_get_value()`
+  - `sane_control_option_set_value()`
+  - `sane_control_option_set_auto()`
+- `sane_set_io_mode()` is not available on sane-wasm
+- `sane_get_select_fd()` is no available on sane-wasm
 
-Check API documentation at: [goncalomb.github.io/sane-wasm/modules.html](https://goncalomb.github.io/sane-wasm/modules.html).
+### Extra TypeScript classes (utilities)
+
+- [src/options.ts](./src/options.ts) to manage scanner options
+- [src/readers.ts](./src/readers.ts) for image acquisition and decoding
 
 ## License
 
