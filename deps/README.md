@@ -22,6 +22,7 @@ Be careful testing new patches because `./build.sh --clean` will clean all the d
     * (HACK) force enable pthreads, during compile configuration pthreads support is not detected, the underlying issue should be eventually addressed, forcing it works for now
 * `backends/backend/test.c`:
     * (FIX) fix memory violation when `number_of_devices` in set to 0 on the test backend
+    * (FIX) not handling `bytes_read < 0` correctly
 * `backends/backend/canon630u.c`:
     * (FIX) fix memory violation after freeing the device list, prevented the backend from being reinitialized
 * `backends/backend/canon_lide70.c`:

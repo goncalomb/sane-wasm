@@ -75,10 +75,25 @@ auto run_on_helper_thread(Function&& fn) {
         std::optional<std::invoke_result_t<Function>> _re;
         void await_suspend(std::coroutine_handle<> h)
         {
+            // On Node.js the Emscripten Workers (threads) are .unref()'d this
+            // causes the main thread to exit even if waiting on a promise,
+            // "unsettled top-level await".
+            // To prevent this we set an interval to keep the main thread alive
+            // while work is being done in the helper thread.
+            // https://github.com/emscripten-core/emscripten/issues/12801
+            // https://github.com/emscripten-core/emscripten/pull/18227
+            // https://github.com/emscripten-core/emscripten/pull/19073
+            // https://github.com/emscripten-core/emscripten/issues/23092
+            // https://github.com/emscripten-core/emscripten/pull/26441
+            // https://github.com/emscripten-core/emscripten/blob/main/src/lib/libpthread.js
+            auto i = emscripten_set_interval([](void *ud){}, 1e9, NULL);
             queue.proxyCallback(
                 helper.native_handle(),
                 [this] { _re.emplace(_fn()); },
-                [h] { h.resume(); },
+                [h, i] {
+                    h.resume();
+                    emscripten_clear_interval(i);
+                },
                 NULL
             );
         }
@@ -546,7 +561,6 @@ namespace sane {
         SANE_Status status = co_await run_on_helper_thread([&len] {
             SANE_Status s;
             do {
-                queue.execute();
                 s = ::sane_read(handle, buffer, BUFFER_LEN, &len);
                 if (s == SANE_STATUS_GOOD && len == 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
