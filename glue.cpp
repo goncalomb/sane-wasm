@@ -240,8 +240,10 @@ namespace sane {
 
     val sane_get_devices() {
         const SANE_Device **device_list;
-        SANE_Status status = ::sane_get_devices(&device_list, SANE_TRUE);
-        RETURN_IF_ERROR_KEY(status, "devices");
+        SANE_Status status = co_await run_on_helper_thread([&] {
+            return ::sane_get_devices(&device_list, SANE_TRUE);
+        });
+        CORETURN_IF_ERROR_KEY(status, "devices");
 
         val devices = val::array();
         for (int i = 0; device_list[i]; i++) {
@@ -252,7 +254,7 @@ namespace sane {
             device.set("type", device_list[i]->type);
             devices.call<void>("push", device);
         }
-        return build_response(status, "devices", devices);
+        co_return build_response(status, "devices", devices);
     }
 
     val sane_open(std::string devicename) {
