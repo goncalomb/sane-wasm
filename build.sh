@@ -114,8 +114,7 @@ fi
 # Excluded backends:
 #   template,unsupported: not real backends
 #   dell1600n_net: doesn't really support any USB device
-#   genesys: causes lockup during sane_get_devices, XXX: to be fixed
-SANE_WASM_BACKENDS=$(./utils.py usb-backends -i test -e template,unsupported,dell1600n_net,genesys)
+SANE_WASM_BACKENDS=$(./utils.py usb-backends -i test -e template,unsupported,dell1600n_net)
 
 # build
 mkdir -p build

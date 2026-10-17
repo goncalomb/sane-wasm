@@ -3,6 +3,7 @@ import { libsane } from '..';
 
 const lib = libsane({
     sane: {
+        backends: ['test'],
         debugTestDevices: 7,
     },
 });

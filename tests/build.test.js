@@ -24,7 +24,7 @@ test('version', async () => {
 
 test('47 backends', async () => {
     const l = await lib;
-    expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(47);
+    expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(48);
 });
 
 test('sane version 1.0', async () => {

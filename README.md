@@ -6,7 +6,7 @@ It supports USB scanners on browser environments through the [WebUSB API](https:
 
 This works by compiling all SANE backends (and required dependencies) to WebAssembly using Emscripten. The other key piece is @RReverser's bridge from libusb to WebUSB ([article](https://web.dev/articles/porting-libusb-to-webusb)/[article](https://web.dev/articles/porting-gphoto2-to-the-web)/[code](https://github.com/libusb/libusb/pull/1057)/[code](https://github.com/libusb/libusb/pull/1339)) for direct USB access.
 
-Right now, it includes [all backends](http://www.sane-project.org/lists/sane-backends-cvs.html) that have support for at least one USB device ([genesys is not included due to issues](https://github.com/goncalomb/sane-wasm/issues/3)). No [external backends](http://www.sane-project.org/lists/sane-backends-external.html) are included at the moment.
+Right now, it includes [all backends](http://www.sane-project.org/lists/sane-backends-cvs.html) that have support for at least one USB device. No [external backends](http://www.sane-project.org/lists/sane-backends-external.html) are included at the moment.
 
 ## WebScan
 
