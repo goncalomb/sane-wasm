@@ -33,6 +33,8 @@ Be careful testing new patches because `./build.sh --clean` will clean all the d
   - `backends/backend/test.c`
 - (FIX) not handling `bytes_read < 0` correctly on the test backend
   - `backends/backend/test.c`
+- (FEATURE) allow using `dll.conf` to disable backends
+  - `backend/dll.c`
 - (FEATURE) adds `SANE_DEBUG_GLOBAL` environment variable to set debug level across all backends
   - `sanei/sanei_init_debug.c`
 

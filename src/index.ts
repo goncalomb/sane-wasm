@@ -386,6 +386,15 @@ export interface LibSANE {
  */
 export type LibSANEOptions = {
     /**
+     * Selects which SANE backends to include or exclude.
+     *
+     * @defaultValue (all backends)
+     */
+    backends?: string[] | {
+        include?: string[];
+        exclude?: string[];
+    };
+    /**
      * Enables SANE low-level debug messages, this can be quite verbose.
      *
      * @defaultValue `false`

@@ -44,6 +44,66 @@ index 2a3bd304e..4443d45b3 100644
    return;
  }
  
+diff --git a/backend/dll.c b/backend/dll.c
+index bf34c4f6d..0481610cc 100644
+--- a/backend/dll.c
++++ b/backend/dll.c
+@@ -197,6 +197,7 @@ struct backend
+   struct backend *next;
+   char *name;
+   u_int permanent:1;		/* is the backend preloaded? */
++  u_int disabled:1;		/* is the backend disabled? */
+   u_int loaded:1;		/* are the functions available? */
+   u_int inited:1;		/* has the backend been initialized? */
+   void *handle;			/* handle returned by dlopen() */
+@@ -224,6 +225,7 @@ struct backend
+ {                                               \
+   0 /* next */, #name,                          \
+   1 /* permanent */,                            \
++  1 /* disabled */,                             \
+   1 /* loaded */,                               \
+   0 /* inited */,                               \
+   0 /* handle */,                               \
+@@ -249,7 +251,7 @@ struct backend
+ #include "dll-preload.h"
+ #else
+ static struct backend preloaded_backends[] = {
+- { 0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}
++ { 0, 0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}
+ };
+ #endif
+ #endif
+@@ -319,6 +321,8 @@ add_backend (const char *name, struct backend **bep)
+ 	DBG (1, "add_backend: `%s' is already there\n", name);
+ 	/* move to front so we preserve order that we'd get with
+ 	   dynamic loading: */
++  if (be->permanent)
++    be->disabled = 0;
+ 	if (prev)
+ 	  {
+ 	    prev->next = be->next;
+@@ -933,6 +937,21 @@ sane_init (SANE_Int * version_code, SANE_Auth_Callback authorize)
+   read_dlld ();
+   read_config (DLL_CONFIG_FILE);
+ 
++  struct backend *be, *prev;
++  for (prev = 0, be = first_backend; be; be = be->next)
++    {
++      if (be->disabled)
++        {
++          DBG (3, "sane_init: backend `%s' is disabled, removing\n", be->name);
++          if (prev)
++            prev->next = be->next;
++          else
++            first_backend = be->next;
++        }
++      else
++        prev = be;
++    }
++
+   fp = sanei_config_open (DLL_ALIASES_FILE);
+   if (!fp)
+     return SANE_STATUS_GOOD;	/* don't insist on aliases file */
 diff --git a/backend/epson.c b/backend/epson.c
 index d1cad9f41..dc806c9bd 100644
 --- a/backend/epson.c

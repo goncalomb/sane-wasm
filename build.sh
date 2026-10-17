@@ -177,12 +177,6 @@ fi
     emmake make -j -C backend install
 )
 
-# Truncate dll.conf, this file sets which backends are enabled, but because we
-# are doing a static build without shared libraries we don't really need it
-# (all backends are always enabled). Leaving other backends listed on that file
-# causes SANE to try to dynamically load them, we don't need that.
-: >"$PREFIX/etc/sane.d/dll.conf"
-
 # Set test backend's number of devices to 0.
 sed -i "s/^number_of_devices .*/number_of_devices 0/g" "$PREFIX/etc/sane.d/test.conf"
 

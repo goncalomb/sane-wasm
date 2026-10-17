@@ -91,6 +91,7 @@
     }
 
     Module.sane = {
+        backends: undefined,
         debugSANE: false,
         debugUSB: false,
         debugFunctionCalls: false,
@@ -123,6 +124,26 @@
     // We don't really use the main() function for any library calls,
     // so using preRun or postRun here is almost identical.
     // The library just starts working when we call sane_init externally.
+
+    Module.postRun.push(() => {
+        // write the list of backends to dll.conf
+        let backendsFinal = Module.SANE_WASM_BACKENDS.split(' ');
+        if (Module.sane.backends) {
+            if (Array.isArray(Module.sane.backends)) {
+                backendsFinal = backendsFinal.filter(b => Module.sane.backends.includes(b));
+            } else {
+                const { include, exclude } = Module.sane.backends;
+                if (Array.isArray(include)) {
+                    backendsFinal = backendsFinal.filter(b => include.includes(b));
+                }
+                if (Array.isArray(exclude)) {
+                    backendsFinal = backendsFinal.filter(b => !exclude.includes(b));
+                }
+            }
+        }
+        const data = backendsFinal.length ? backendsFinal.join('\n') + '\n' : '';
+        Module.FS.writeFile('/etc/sane.d/dll.conf', data);
+    });
 
     Module.postRun.push(() => {
         // promote enums to more useful objects
