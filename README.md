@@ -26,7 +26,7 @@ npm install sane-wasm
 
 Cross-origin isolation ([COOP+COEP](https://web.dev/articles/coop-coep)) is required for [multithreading](https://emscripten.org/docs/porting/pthreads.html) which uses Web Workers and SharedArrayBuffer. This is not optional.
 
-See [examples/webpack/](./examples/webpack/) for a working example.
+See [examples/webpack/](https://github.com/goncalomb/sane-wasm/tree/master/examples/webpack) for a working example.
 
 ### For Node.js
 
@@ -36,7 +36,7 @@ npm install sane-wasm usb
 
 The usb package ([node-usb](https://github.com/node-usb/node-usb)) is required to provide USB functionality.
 
-See [examples/node/](./examples/node/) for a working example.
+See [examples/node/](https://github.com/goncalomb/sane-wasm/tree/master/examples/node) for a working example.
 
 ## Building
 
@@ -64,7 +64,7 @@ npm run test   # run the tests
 
 ### Non-Docker builds and `build.sh`
 
-Building without Docker is possible but untested. It requires [Emscripten](https://emscripten.org/) and all the tools to build the dependencies, see [Dockerfile](./Dockerfile).
+Building without Docker is possible but untested. It requires [Emscripten](https://emscripten.org/) and all the tools to build the dependencies, see [Dockerfile](https://github.com/goncalomb/sane-wasm/blob/master/Dockerfile).
 
 The `./build.sh` script controls the build and has other options for debugging:
 
@@ -105,8 +105,8 @@ Other differences include:
 
 ### Extra TypeScript classes (utilities)
 
-- [src/options.ts](./src/options.ts) to manage scanner options
-- [src/readers.ts](./src/readers.ts) for image acquisition and decoding
+- [src/options.ts](https://github.com/goncalomb/sane-wasm/blob/master/src/options.ts) to manage scanner options
+- [src/readers.ts](https://github.com/goncalomb/sane-wasm/blob/master/src/readers.ts) for image acquisition and decoding
 
 ## License
 

@@ -10,12 +10,12 @@ export function load(app: Application) {
     // remove site menu and other elements on index.html
     app.renderer.hooks.on('head.end', (context: DefaultThemeRenderContext) => {
         if (context.page.url === 'index.html') {
-            return JSX.createElement('style', null, '.site-menu, .tsd-page-title, .tsd-filter-visibility { display: none; }');
+            return JSX.createElement('style', null, '.tsd-page-title, .tsd-navigation:not(#tsd-sidebar-links), .tsd-navigation.settings { display: none; }');
         }
         return JSX.createElement(JSX.Fragment, null);
     });
 
-    // allow relative links on toolbar
+    // allow relative links on toolbar and sidebar
     app.renderer.hooks.on('body.end', (context: DefaultThemeRenderContext) => {
         return JSX.createElement('script', null, JSX.createElement(JSX.Raw, {
             html: `
@@ -23,12 +23,12 @@ export function load(app: Application) {
     els.forEach(el => {
         const href = el.getAttribute('href');
         if (href.startsWith('/')) {
-            el.setAttribute('href',\`\${base}\${href}\`);
+            el.setAttribute('href',\`\${base}\${href}\`.replace(/\\/+/g, '/'));
         }
     });
 })(
-    document.querySelectorAll('#tsd-toolbar-links a'),
-    document.getElementById('tsd-search').dataset.base
+    document.querySelectorAll('#tsd-toolbar-links a, #tsd-sidebar-links a'),
+    document.documentElement.dataset.base
 );
 `,
         }));

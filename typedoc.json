@@ -4,7 +4,12 @@
   "out": "docs",
   "navigationLinks": {
     "API": "/modules.html",
+    "NPM": "https://www.npmjs.com/package/sane-wasm",
     "GitHub": "https://github.com/goncalomb/sane-wasm",
+  },
+  "sidebarLinks": {
+    "API Index": "/modules.html",
+    "Examples": "https://github.com/goncalomb/sane-wasm/tree/master/examples",
   },
   "includeVersion": true,
   "plugin": [
