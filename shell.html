@@ -306,10 +306,10 @@
                             ["td", null, `${n}`],
                             ["td", null, [
                                 ["strong", null, `${opt.title}`],
-                                ` [name=${opt.name}] [type=${LibSANE.SANE_TYPE.asString(opt.type)}] [unit=${LibSANE.SANE_UNIT.asString(opt.unit)}] [size=${opt.size}]`, ["br"],
+                                ` [name=${opt.name}] [type=${LibSANE.SANE_TYPE[opt.type]}] [unit=${LibSANE.SANE_UNIT[opt.unit]}] [size=${opt.size}]`, ["br"],
                                 ["abbr", { title: [
                                     `cap=${JSON.stringify(opt.cap, null, 2)}`,
-                                    `constraint_type=${LibSANE.SANE_CONSTRAINT.asString(opt.constraint_type)}`,
+                                    `constraint_type=${LibSANE.SANE_CONSTRAINT[opt.constraint_type]}`,
                                     `constraint=${JSON.stringify(opt.constraint, null, 2)}`,
                                 ].join("\n") }, "[cap=...] [constraint_type=...] [constraint=...]"], ["br"],
                                 ["small", null, opt.desc],

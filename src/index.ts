@@ -180,17 +180,6 @@ export type SANEParameters = {
 }
 
 /**
- * @private Type for enums provided by the core SANE Emscripten module.
- * @deprecated
- */
-export type SANEEnum<E, TE> = E & {
-    /**
-     * @deprecated Use reverse map already built into TS enums.
-     */
-    asString: (value: TE) => string;
-}
-
-/**
  * The core SANE Emscripten module.
  */
 export interface LibSANE {
@@ -230,7 +219,7 @@ export interface LibSANE {
      * require having a reference to the library module. All enums are
      * exported with the package.
      */
-    SANE_STATUS: SANEEnum<typeof SANEStatus, SANEStatus>;
+    SANE_STATUS: typeof SANEStatus;
 
     /**
      * @deprecated Consider using the SANEValueType enum directly.
@@ -241,7 +230,7 @@ export interface LibSANE {
      * require having a reference to the library module. All enums are
      * exported with the package.
      */
-    SANE_TYPE: SANEEnum<typeof SANEValueType, SANEValueType>;
+    SANE_TYPE: typeof SANEValueType;
 
     /**
      * @deprecated Consider using the SANEUnit enum directly.
@@ -252,7 +241,7 @@ export interface LibSANE {
      * require having a reference to the library module. All enums are
      * exported with the package.
      */
-    SANE_UNIT: SANEEnum<typeof SANEUnit, SANEUnit>;
+    SANE_UNIT: typeof SANEUnit;
 
     /**
      * @deprecated Consider using the SANEConstraintType enum directly.
@@ -263,7 +252,7 @@ export interface LibSANE {
      * require having a reference to the library module. All enums are
      * exported with the package.
      */
-    SANE_CONSTRAINT: SANEEnum<typeof SANEConstraintType, SANEConstraintType>;
+    SANE_CONSTRAINT: typeof SANEConstraintType;
 
     /**
      * @deprecated Consider using the SANEFrame enum directly.
@@ -274,7 +263,7 @@ export interface LibSANE {
      * require having a reference to the library module. All enums are
      * exported with the package.
      */
-    SANE_FRAME: SANEEnum<typeof SANEFrame, SANEFrame>;
+    SANE_FRAME: typeof SANEFrame;
 
     /**
      * Get the current state of the library.

@@ -56,15 +56,13 @@ using namespace emscripten;
 #define BUFFER_LEN 2*1024*1024
 
 static ProxyingQueue queue;
-static std::thread helper;
+static std::thread helper([]{
+    emscripten_runtime_keepalive_push();
+});
 
 SANE_Int version_code = 0;
 SANE_Handle handle = NULL;
 SANE_Byte buffer[BUFFER_LEN];
-
-void helper_thread_main() {
-    emscripten_runtime_keepalive_push();
-}
 
 template <typename Function>
 auto run_on_helper_thread(Function&& fn) {
@@ -146,62 +144,6 @@ val bitmap_info_to_val(SANE_Int info) {
 // SANE API
 
 namespace sane {
-
-    // SANE_Status
-    std::map<const char *, int> SANE_STATUS = {
-        {"GOOD", SANE_STATUS_GOOD},
-        {"UNSUPPORTED", SANE_STATUS_UNSUPPORTED},
-        {"CANCELLED", SANE_STATUS_CANCELLED},
-        {"DEVICE_BUSY", SANE_STATUS_DEVICE_BUSY},
-        {"INVAL", SANE_STATUS_INVAL},
-        {"EOF", SANE_STATUS_EOF},
-        {"JAMMED", SANE_STATUS_JAMMED},
-        {"NO_DOCS", SANE_STATUS_NO_DOCS},
-        {"COVER_OPEN", SANE_STATUS_COVER_OPEN},
-        {"IO_ERROR", SANE_STATUS_IO_ERROR},
-        {"NO_MEM", SANE_STATUS_NO_MEM},
-        {"ACCESS_DENIED", SANE_STATUS_ACCESS_DENIED},
-    };
-
-    // SANE_Value_Type
-    std::map<const char *, int> SANE_TYPE = {
-        {"BOOL", SANE_TYPE_BOOL},
-        {"INT", SANE_TYPE_INT},
-        {"FIXED", SANE_TYPE_FIXED},
-        {"STRING", SANE_TYPE_STRING},
-        {"BUTTON", SANE_TYPE_BUTTON},
-        {"GROUP", SANE_TYPE_GROUP},
-    };
-
-    // SANE_Unit
-    std::map<const char *, int> SANE_UNIT = {
-        {"NONE", SANE_UNIT_NONE},
-        {"PIXEL", SANE_UNIT_PIXEL},
-        {"BIT", SANE_UNIT_BIT},
-        {"MM", SANE_UNIT_MM},
-        {"DPI", SANE_UNIT_DPI},
-        {"PERCENT", SANE_UNIT_PERCENT},
-        {"MICROSECOND", SANE_UNIT_MICROSECOND},
-    };
-
-    // SANE_Constraint_Type
-    std::map<const char *, int> SANE_CONSTRAINT = {
-        {"NONE", SANE_CONSTRAINT_NONE},
-        {"RANGE", SANE_CONSTRAINT_RANGE},
-        {"WORD_LIST", SANE_CONSTRAINT_WORD_LIST},
-        {"STRING_LIST", SANE_CONSTRAINT_STRING_LIST},
-    };
-
-    // SANE_Action not used on the exposed api
-
-    // SANE_Frame
-    std::map<const char *, int> SANE_FRAME = {
-        {"GRAY", SANE_FRAME_GRAY},
-        {"RGB", SANE_FRAME_RGB},
-        {"RED", SANE_FRAME_RED},
-        {"GREEN", SANE_FRAME_GREEN},
-        {"BLUE", SANE_FRAME_BLUE},
-    };
 
     val sane_get_state() {
         val version = val::object();
@@ -594,59 +536,65 @@ namespace sane {
 
 }
 
-/*
-
-Weird way to export enums as simple JS objects...
-
-I tried using constant bindings to expose the enums, but could not make it
-work. I don't think it's possible to create the val::object during static
-initialization (int binding error?).
-
-Using main() to map the enums at runtime, kind of weird?
-
-XXX: help me
-
-val enum_SANE_STATUS_to_val() {
-    val obj = val::object();
-    obj.set("GOOD", (int) SANE_STATUS_GOOD);
-    // ...
-    return obj;
-}
-
-EMSCRIPTEN_BINDINGS(sane_bindings) {
-    constant("SANE_STATUS", enum_SANE_STATUS_to_val());
-}
-
-*/
-
-EM_JS(void, module_set, (const char* k, EM_VAL v), {
-    Module[UTF8ToString(k)] = Emval.toValue(v);
-});
-
-val map_to_val_object(const std::map<const char *, int> &map) {
-    val obj = val::object();
-    for (const auto &kv : map) {
-        obj.set(kv.first, kv.second);
-    }
-    return obj;
-}
-
-int main() {
-    module_set("SANE_STATUS", map_to_val_object(sane::SANE_STATUS).as_handle());
-    module_set("SANE_TYPE", map_to_val_object(sane::SANE_TYPE).as_handle());
-    module_set("SANE_UNIT", map_to_val_object(sane::SANE_UNIT).as_handle());
-    module_set("SANE_CONSTRAINT", map_to_val_object(sane::SANE_CONSTRAINT).as_handle());
-    module_set("SANE_FRAME", map_to_val_object(sane::SANE_FRAME).as_handle());
-    helper = std::thread(helper_thread_main);
-    return 0;
-}
-
 EMSCRIPTEN_BINDINGS(sane_bindings) {
     constant("SANE_WASM_COMMIT", val(SANE_WASM_COMMIT));
     constant("SANE_WASM_VERSION", val(SANE_WASM_VERSION));
     constant("SANE_WASM_BACKENDS", val(SANE_WASM_BACKENDS));
     constant("SANE_CURRENT_MAJOR", SANE_CURRENT_MAJOR);
     constant("SANE_CURRENT_MINOR", SANE_CURRENT_MINOR);
+
+    enum_<SANE_Status>("SANE_STATUS", enum_value_type::number)
+        .value("GOOD", SANE_STATUS_GOOD)
+        .value("UNSUPPORTED", SANE_STATUS_UNSUPPORTED)
+        .value("CANCELLED", SANE_STATUS_CANCELLED)
+        .value("DEVICE_BUSY", SANE_STATUS_DEVICE_BUSY)
+        .value("INVAL", SANE_STATUS_INVAL)
+        .value("EOF", SANE_STATUS_EOF)
+        .value("JAMMED", SANE_STATUS_JAMMED)
+        .value("NO_DOCS", SANE_STATUS_NO_DOCS)
+        .value("COVER_OPEN", SANE_STATUS_COVER_OPEN)
+        .value("IO_ERROR", SANE_STATUS_IO_ERROR)
+        .value("NO_MEM", SANE_STATUS_NO_MEM)
+        .value("ACCESS_DENIED", SANE_STATUS_ACCESS_DENIED)
+        ;
+
+    enum_<SANE_Value_Type>("SANE_TYPE", enum_value_type::number)
+        .value("BOOL", SANE_TYPE_BOOL)
+        .value("INT", SANE_TYPE_INT)
+        .value("FIXED", SANE_TYPE_FIXED)
+        .value("STRING", SANE_TYPE_STRING)
+        .value("BUTTON", SANE_TYPE_BUTTON)
+        .value("GROUP", SANE_TYPE_GROUP)
+        ;
+
+    enum_<SANE_Unit>("SANE_UNIT", enum_value_type::number)
+        .value("NONE", SANE_UNIT_NONE)
+        .value("PIXEL", SANE_UNIT_PIXEL)
+        .value("BIT", SANE_UNIT_BIT)
+        .value("MM", SANE_UNIT_MM)
+        .value("DPI", SANE_UNIT_DPI)
+        .value("PERCENT", SANE_UNIT_PERCENT)
+        .value("MICROSECOND", SANE_UNIT_MICROSECOND)
+        ;
+
+    enum_<SANE_Constraint_Type>("SANE_CONSTRAINT", enum_value_type::number)
+        .value("NONE", SANE_CONSTRAINT_NONE)
+        .value("RANGE", SANE_CONSTRAINT_RANGE)
+        .value("WORD_LIST", SANE_CONSTRAINT_WORD_LIST)
+        .value("STRING_LIST", SANE_CONSTRAINT_STRING_LIST)
+        ;
+
+    // SANE_Action not used on the exposed api
+
+    enum_<SANE_Frame>("SANE_FRAME", enum_value_type::number)
+        .value("GRAY", SANE_FRAME_GRAY)
+        .value("RGB", SANE_FRAME_RGB)
+        .value("RED", SANE_FRAME_RED)
+        .value("GREEN", SANE_FRAME_GREEN)
+        .value("BLUE", SANE_FRAME_BLUE)
+        ;
+
+
     function("sane_get_state", &sane::sane_get_state);
     function("sane_init", &sane::sane_init);
     function("sane_exit", &sane::sane_exit);

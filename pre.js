@@ -38,24 +38,6 @@
 */
 
 {
-    class EnumSANE {
-        // static reverseObject = Symbol("reverseObject"); // not supported
-
-        static promote(obj) {
-            obj.__proto__ = this.prototype;
-            obj[this.reverseObject] = {};
-            Object.keys(obj).forEach(k => {
-                obj[obj[k]] = k; // reverse mapping à la typescript
-                obj[this.reverseObject][obj[k]] = k; // XXX: old reverse mapping, consider removing
-            });
-        }
-
-        asString(i) {
-            return this[this.constructor.reverseObject][i] || null;
-        }
-    }
-    EnumSANE.reverseObject = Symbol("reverseObject");
-
     // Many SANE functions are expected to return a promise, even though
     // they originally are blocking calls. This happens because we use
     // emscripten's asyncify feature.
@@ -146,9 +128,12 @@
     });
 
     Module.postRun.push(() => {
-        // promote enums to more useful objects
+        // add reverse mapping to the enums (same as typescript)
         ["SANE_STATUS", "SANE_TYPE", "SANE_UNIT", "SANE_CONSTRAINT", "SANE_FRAME"].forEach(s => {
-            EnumSANE.promote(Module[s]);
+            const obj = Module[s];
+            Object.keys(obj).forEach(k => {
+                obj[obj[k]] = k;
+            });
         });
 
         // set test backend number of devices
