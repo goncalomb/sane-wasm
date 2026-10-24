@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`image reader (Color pattern) 1`] = `
+[
+  "image",
+  123088,
+  "5ec1af3df741aa0ba5c725002a06c18f220242726889aac6ee47dc2f68ff759b",
+]
+`;
+
+exports[`image reader (Grid) 1`] = `
+[
+  "image",
+  123088,
+  "c141e412fcaa1cb3e7868ca2c48552280d6a83fe961dd626313f561aa8bdbcab",
+]
+`;
+
+exports[`image reader (Solid black) 1`] = `
+[
+  "image",
+  123088,
+  "5c98072669da33376e29e4e58be847ffee3073a2232fe9dd7109d5225450bf55",
+]
+`;
+
+exports[`image reader (Solid white) 1`] = `
+[
+  "image",
+  123088,
+  "81488d83a0a972d601820c5fbc291b64792a20eed199b2b512132aa9a44da5d3",
+]
+`;
