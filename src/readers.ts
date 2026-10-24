@@ -2,6 +2,7 @@ import { LibSANE, SANEFrame, SANEParameters, SANEStatus } from "./index.js";
 
 abstract class EventBaseClass<T extends Record<keyof T, any[]>> {
 
+    private _queue: (() => void)[] = [];
     private _firing = false;
     private _listeners: {
         [K in keyof T]?: ((...args: T[K]) => void)[];
@@ -20,19 +21,20 @@ abstract class EventBaseClass<T extends Record<keyof T, any[]>> {
     /**
      * Fire event.
      */
-    protected fire<K extends keyof T>(type: K, ...args: T[K]): Promise<null> | null {
-        // if already firing an event, queue for later
+    protected fire<K extends keyof T>(type: K, ...args: T[K]) {
+        this._queue.push(() => this._listeners[type]?.forEach(fn => fn.apply(this, args)));
         if (this._firing) {
-            return Promise.resolve().then(() => this.fire(type, ...args));
+            return;
         }
-        // fire now
         this._firing = true;
         try {
-            this._listeners[type]?.forEach(fn => fn.apply(this, args));
+            while (this._queue.length) {
+                this._queue.shift()!();
+            }
         } finally {
+            this._queue = [];
             this._firing = false;
         }
-        return null;
     }
 }
 
