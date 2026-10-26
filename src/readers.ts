@@ -223,7 +223,7 @@ export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReader
 
     private _line: number = 0;
     private _allData = new Uint8ClampedArray();
-    private _remainder = new Uint8ClampedArray();
+    private _tmpData = new Uint8ClampedArray();
 
     constructor(lib: LibSANE) {
         super(lib);
@@ -257,22 +257,28 @@ export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReader
         // we support GRAY and RGB single-pass, 1 and 8-bit, known height
         // that should cover most modern scanners
         this._allData = new Uint8ClampedArray(parameters.lines * parameters.pixels_per_line * 4);
+        this._tmpData = new Uint8ClampedArray(new ArrayBuffer(0, { maxByteLength: this._allData.byteLength }), 0, 0);
     }
 
     private _onData(parameters: SANEParameters, data: Uint8Array) {
-        const dataIn = new Uint8ClampedArray(this._remainder.length + data.length);
-        dataIn.set(this._remainder, 0);
-        dataIn.set(data, this._remainder.length);
+        const sz = this._tmpData.byteLength + data.byteLength;
+        if (sz > this._tmpData.buffer.byteLength) {
+            this._tmpData.buffer.resize(sz);
+        }
+
+        // append new data after previous data
+        const dataIn = new Uint8ClampedArray(this._tmpData.buffer, 0, sz);
+        dataIn.set(data, this._tmpData.length);
 
         // line count, number of full available lines
         const lc = Math.floor(dataIn.length / parameters.bytes_per_line);
         if (!lc) {
             // not enough data for a full line
-            this._remainder = dataIn;
+            this._tmpData = dataIn;
             return;
         }
 
-        const dataOut = new Uint8ClampedArray(lc * parameters.pixels_per_line * 4); // RGBA (8-bit)
+        const dataOut = this._allData.subarray(this._line * parameters.pixels_per_line * 4); // RGBA (8-bit)
         let ik = 0; // consumed data on dataIn
         if (parameters.depth === 8) {
             if (parameters.format === SANEFrame.GRAY) {
@@ -322,9 +328,12 @@ export class ScanImageReader<T extends ScanImageReaderEventMap = ScanImageReader
                 }
             }
         }
-        this._remainder = dataIn.subarray(ik);
+
+        // shift remaining data
+        dataIn.copyWithin(0, ik);
+        this._tmpData = dataIn.subarray(0, dataIn.length - ik);
+
         this.fire('line', parameters, dataOut, this._line);
-        this._allData.set(dataOut, this._line * parameters.pixels_per_line * 4);
         this._line += lc;
     }
 
