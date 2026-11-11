@@ -6,6 +6,6 @@
   },
   "dependencies": {
     "sane-wasm": "file:../..",
-    "usb": "3.2.1"
+    "usb": "3.3.0"
   }
 }
