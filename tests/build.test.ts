@@ -5,7 +5,7 @@ import pkg from '../package.json' with { type: 'json' };
 
 const lib = libsane();
 
-const envFlag = (name) => !/^(?:false|off|0|)$/.test(process.env[name] ?? '');
+const envFlag = (name: string) => !/^(?:false|off|0|)$/.test(process.env[name] ?? '');
 
 test('version', async () => {
     const l = await lib;
@@ -22,9 +22,9 @@ test('version', async () => {
     }
 });
 
-test('47 backends', async () => {
+test('backends', async () => {
     const l = await lib;
-    expect(l.SANE_WASM_BACKENDS.split(' ')).toBeArrayOfSize(48);
+    expect(l.SANE_WASM_BACKENDS.split(' ')).toHaveLength(48);
 });
 
 test('sane version 1.0', async () => {

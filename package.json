@@ -46,7 +46,6 @@
   "devDependencies": {
     "@types/emscripten": "^1.41.6",
     "@types/node": "^26.6.4",
-    "jest-extended": "^7.0.0",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "usb": "^3.3.0",

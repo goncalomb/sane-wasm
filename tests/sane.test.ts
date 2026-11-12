@@ -12,7 +12,7 @@ test('sane_init', async () => {
     const l = await lib;
     expect(await l.sane_init()).toMatchObject({
         status: l.SANE_STATUS.GOOD,
-        version_code: expect.toBePositive(),
+        version_code: expect.toSatisfy(v => v > 0),
     });
     expect(await l.sane_init()).toEqual({
         status: l.SANE_STATUS.INVAL,
@@ -25,16 +25,16 @@ test('sane_get_devices', async () => {
     const result = await l.sane_get_devices();
     expect(result).toMatchObject({
         status: l.SANE_STATUS.GOOD,
-        devices: expect.toBeArrayOfSize(7),
+        devices: expect.toSatisfy(arr => Array.isArray(arr) && arr.length === 7),
     });
 });
 
 test('sane_read blocks and returns data', async () => {
     const l = await lib;
     const { devices } = await l.sane_get_devices();
-    expect(devices.length).toBeGreaterThan(0);
+    expect(devices!.length).toBeGreaterThan(0);
 
-    const openRes = await l.sane_open(devices[0].name);
+    const openRes = await l.sane_open(devices![0].name);
     expect(openRes.status).toBe(l.SANE_STATUS.GOOD);
 
     const startRes = await l.sane_start();
@@ -43,7 +43,7 @@ test('sane_read blocks and returns data', async () => {
     const readRes = await l.sane_read();
     expect(readRes.status).toBe(l.SANE_STATUS.GOOD);
     expect(readRes.data).toBeInstanceOf(Uint8Array);
-    expect(readRes.data.length).toBeGreaterThan(0);
+    expect(readRes.data!.length).toBeGreaterThan(0);
 
     await l.sane_cancel();
     await l.sane_close();

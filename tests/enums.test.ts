@@ -1,0 +1,20 @@
+import { expect, test } from 'vitest';
+import * as all from '..';
+import { libsane } from '..';
+
+const lib = libsane();
+
+const tsEnumsToSane = [
+    ['SANEStatus', 'SANE_STATUS'],
+    ['SANEValueType', 'SANE_TYPE'],
+    ['SANEUnit', 'SANE_UNIT'],
+    ['SANEConstraintType', 'SANE_CONSTRAINT'],
+    ['SANEFrame', 'SANE_FRAME'],
+] as const;
+
+test('ts enums match sane enums', async () => {
+    const l = await lib;
+    tsEnumsToSane.forEach(([tsName, saneName]) => {
+        expect(all[tsName]).toStrictEqual(l[saneName]);
+    });
+});
