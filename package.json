@@ -45,10 +45,10 @@
   },
   "devDependencies": {
     "@types/emscripten": "^1.41.6",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.6",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "usb": "^3.3.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.1.0"
   }
 }
